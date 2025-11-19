@@ -31,7 +31,7 @@ class MainController(Controller):
 
         """
         env = request.env
-        data = request.params
+        data = request.get_json_data()
         email = data.get("email")
         phone = data.get("phone")
         store_name = data.get("store_name")
