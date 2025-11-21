@@ -329,12 +329,16 @@ class MainController(Controller):
         for invoice in invoices:
             invoice.write(
                 {
+                    "l10n_mx_edi_cfdi_to_public": data.get("cfdi_to_public", False),
                     "l10n_mx_edi_usage": data.get("code_usage", "G01"),
                 }
             )
             if data.get("journal_id"):
                 journal_id = data["journal_id"]
                 invoice.write({"journal_id": journal_id})
+            if data.get("cfdi_origin_id"):
+                cfdi_origin_id = data["cfdi_origin_id"]
+                invoice.write({"l10n_mx_edi_cfdi_origin": cfdi_origin_id})
 
         # Confirm invoice
         invoices.action_post()
@@ -489,7 +493,14 @@ class MainController(Controller):
             }
 
         # Attempt the stamping process
-        invoice.action_process_edi_web_services()
+        wizard = request.env['account.move.send'].create({
+            'move_ids': [invoice.id],
+            'checkbox_send_mail': False, # No send mail after stamping.
+            'checkbox_download': False,  # No download the PDF in the response.
+        })
+        
+        # This action generates the PDF and triggers the CFDI creation (Stamping)
+        wizard.action_send_and_print()
 
         # Check again if the invoice was successfully stamped
         if invoice.l10n_mx_edi_cfdi_uuid:
@@ -499,7 +510,7 @@ class MainController(Controller):
             }
 
         # If stamping failed, get the error messages
-        error_message = invoice.edi_error_message
+        error_message = invoice.edi_error_message or "Check the chatter for details."
         return {
             "error": "The invoice stamping failed.",
             "details": error_message,
