@@ -600,6 +600,64 @@ class MainController(Controller):
         }
 
     @route(
+        '/confirm_credit_note/<model("account.move"):credit_note>',
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def confirm_credit_note(self, credit_note=None):
+        """Updates and confirms a draft credit note.
+
+        This function updates a draft credit note with provided values and then confirms (posts) it.
+        It specifically handles mapping for common Mexican localization fields if provided.
+
+        URL parameter:
+            - credit_note (account.move): The credit note model instance (must be in draft).
+
+        JSON request body:
+            - usage (str, optional): The CFDI usage code (e.g., "G02"). Maps to 'l10n_mx_edi_usage'.
+            - cfdi_origin (str, optional): The CFDI Origin string (e.g., "01|UUID"). Maps to 'l10n_mx_edi_cfdi_origin'.
+            - payment_method_id (int, optional): ID of the payment method. Maps to 'l10n_mx_edi_payment_method_id'.
+            - Any other field valid for account.move (e.g., "ref", "date", "invoice_date").
+
+        JSON response:
+            - message (str): Success message.
+            - credit_note_id (int): ID of the confirmed credit note.
+            - name (str): The name/number of the confirmed credit note.
+        """
+        data = request.get_json_data()
+        vals_to_update = {}
+
+        # Helper mapping for common Mexican localization fields based on the image provided
+        # This allows sending "usage" instead of the long technical name
+        if "usage" in data:
+            vals_to_update["l10n_mx_edi_usage"] = data.pop("usage")
+        if "cfdi_public" in data:
+            vals_to_update["l10n_mx_edi_cfdi_to_public"] = data.pop("cfdi_public")
+        if "cfdi_origin" in data:
+            vals_to_update["l10n_mx_edi_cfdi_origin"] = data.pop("cfdi_origin")
+        if "payment_method_id" in data:
+            vals_to_update["l10n_mx_edi_payment_method_id"] = data.pop(
+                "payment_method_id"
+            )
+
+        # Add any remaining data from the request directly to the update values
+        # This allows updating standard fields like 'ref', 'invoice_date', etc.
+        vals_to_update.update(data)
+
+        if vals_to_update:
+            credit_note.write(vals_to_update)
+
+        # Confirm (Post) the credit note
+        credit_note.action_post()
+
+        return {
+            "message": f"Credit note {credit_note.name} confirmed successfully.",
+            "credit_note_id": credit_note.id,
+            "name": credit_note.name,
+        }
+
+    @route(
         '/send_invoice_by_email/<model("account.move"):invoice>',
         type="json",
         auth="user",
