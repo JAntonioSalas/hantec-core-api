@@ -549,6 +549,7 @@ class MainController(Controller):
         """
         data = request.get_json_data()
         reason = data.get("reason", "revertir")
+        journal_id = data.get("journal_id", 1)
 
         # Context is required for the wizard to know which invoice to reverse
         ctx = {
@@ -557,7 +558,10 @@ class MainController(Controller):
             "active_id": invoice.id,
         }
 
-        wizard_vals = {"reason": reason}
+        wizard_vals = {
+            "reason": reason,
+            "journal_id": journal_id,
+        }
 
         # Create the wizard
         reversal_wizard = (
