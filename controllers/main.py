@@ -492,25 +492,29 @@ class MainController(Controller):
                 "UUID": invoice.l10n_mx_edi_cfdi_uuid,
             }
 
-        if not invoice.edi_document_ids:
-            invoice._update_payments_edi_documents()
-            invoice._check_edi_supplier_usage()
-        
-        if hasattr(invoice, 'action_process_edi_web_services'):
-            invoice.action_process_edi_web_services()
-        
-        edi_docs = invoice.edi_document_ids.filtered(lambda d: d.state in ('to_send', 'to_cancel'))
-        if edi_docs:
-            edi_docs.action_execute()
-        
+        # We use the account.move.send.wizard to process EDI documents (stamping)
+        # We simulate the wizard action to trigger the CFDI generation
+        send_wizard = request.env["account.move.send.wizard"].create(
+            {
+                "move_id": invoice.id,
+            }
+        )
+
+        # Often just calling the action to process is enough if configured correctly
+        send_wizard.action_send_and_print(allow_fallback_pdf=False)
+
         # Check again if the invoice was successfully stamped
         if invoice.l10n_mx_edi_cfdi_uuid:
             return {
                 "success": "The invoice has been successfully stamped.",
                 "UUID": invoice.l10n_mx_edi_cfdi_uuid,
             }
-        
-        error_message = invoice.edi_error_message or "Check the chatter for details."
+
+        # If not stamped immediately, check for errors
+        error_message = "Check the chatter for details."
+        if hasattr(invoice, "edi_error_message") and invoice.edi_error_message:
+            error_message = invoice.edi_error_message
+
         return {
             "error": "The invoice stamping failed.",
             "details": error_message,
