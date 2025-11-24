@@ -500,7 +500,7 @@ class MainController(Controller):
             }
         )
 
-        # Often just calling the action to process is enough if configured correctly
+        # Call the action to send and print (which includes stamping)
         send_wizard.action_send_and_print(allow_fallback_pdf=False)
 
         # Check again if the invoice was successfully stamped
@@ -518,6 +518,81 @@ class MainController(Controller):
         return {
             "error": "The invoice stamping failed.",
             "details": error_message,
+        }
+
+    @route(
+        '/create_credit_note/<model("account.move"):invoice>',
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def create_credit_note(self, invoice=None):
+        """Creates a credit note for an invoice.
+
+        This function creates a credit note (reversal) for a specified invoice using the
+        account.move.reversal wizard.
+
+        URL parameter:
+            - invoice (account.move): The invoice model instance to be reversed.
+
+        JSON request body:
+            - reason (str): The reason for the credit note.
+            - date (str, optional): The reversal date (YYYY-MM-DD).
+            - journal_id (int, optional): The ID of the specific journal to use.
+
+        JSON response:
+            - message (str): A message indicating the result.
+            - credit_note_id (int): The ID of the created credit note.
+
+        Returns:
+            dict: A dictionary with the result.
+        """
+        data = request.get_json_data()
+        reason = data.get("reason", "revertir")
+
+        # Context is required for the wizard to know which invoice to reverse
+        ctx = {
+            "active_model": "account.move",
+            "active_ids": [invoice.id],
+            "active_id": invoice.id,
+        }
+
+        wizard_vals = {"reason": reason}
+
+        # Create the wizard
+        reversal_wizard = (
+            request.env["account.move.reversal"].with_context(**ctx).create(wizard_vals)
+        )
+
+        # Execute the reversal action
+        action = reversal_wizard.refund_moves()
+
+        credit_note_id = None
+
+        # Attempt to retrieve the created credit note ID from the action returned
+        if isinstance(action, dict):
+            if action.get("res_id"):
+                credit_note_id = action["res_id"]
+            elif action.get("domain"):
+                domain = action["domain"]
+                credit_notes = request.env["account.move"].search(domain, limit=1)
+                if credit_notes:
+                    credit_note_id = credit_notes.id
+
+        # Fallback if action parsing fails
+        if not credit_note_id:
+            # Find the move that has this invoice as the reversed entry
+            credit_note = request.env["account.move"].search(
+                [("reversed_entry_id", "=", invoice.id)],
+                order="id desc",
+                limit=1,
+            )
+            if credit_note:
+                credit_note_id = credit_note.id
+
+        return {
+            "message": "Credit note created successfully.",
+            "credit_note_id": credit_note_id,
         }
 
     @route(
