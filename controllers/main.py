@@ -234,8 +234,15 @@ class MainController(Controller):
 
         sale_order_vals = {
             "partner_id": sale_order_data["partner_id"],
+            "l10n_mx_edi_cfdi_to_public": True,
             "order_line": order_lines,
         }
+
+        if "usage" in data:
+            sale_order_vals["l10n_mx_edi_usage"] = data["usage"]
+
+        if "payment_method_id" in data:
+            sale_order_vals["l10n_mx_edi_payment_method_id"] = data["payment_method_id"]
 
         # Add all other valid fields
         for field, value in sale_order_data.items():
@@ -655,6 +662,7 @@ class MainController(Controller):
             "message": f"Credit note {credit_note.name} confirmed successfully.",
             "credit_note_id": credit_note.id,
             "name": credit_note.name,
+            "cfdi_origin": credit_note.l10n_mx_edi_cfdi_origin,
         }
 
     @route(
