@@ -499,12 +499,14 @@ class MainController(Controller):
                 "UUID": invoice.l10n_mx_edi_cfdi_uuid,
             }
 
+        send_email = request.get_json_data().get("send_email", False)
+
         # We use the account.move.send.wizard to process EDI documents (stamping)
         # We simulate the wizard action to trigger the CFDI generation
         send_wizard = request.env["account.move.send.wizard"].create(
             {
                 "move_id": invoice.id,
-                "checkbox_send_mail": request.get_json_data().get("send_email", False),
+                "sending_methods": ["email"] if send_email else False,
             }
         )
 
