@@ -331,24 +331,23 @@ class MainController(Controller):
 
         # Create invoice
         invoice_wizard.create_invoices()
-        invoices = order.invoice_ids
+        invoices = order.invoice_ids.filtered(lambda inv: inv.state == "draft")
 
-        for invoice in invoices:
-            invoice.write(
-                {
-                    "l10n_mx_edi_cfdi_to_public": data.get("cfdi_to_public", False),
-                    "l10n_mx_edi_usage": data.get("code_usage", "G01"),
-                }
-            )
-            if data.get("journal_id"):
-                journal_id = data["journal_id"]
-                invoice.write({"journal_id": journal_id})
-            if data.get("cfdi_origin_id"):
-                cfdi_origin_id = data["cfdi_origin_id"]
-                invoice.write({"l10n_mx_edi_cfdi_origin": cfdi_origin_id})
+        vals = {
+            "l10n_mx_edi_cfdi_to_public": data.get("cfdi_to_public", False),
+            "l10n_mx_edi_usage": data.get("code_usage", "G01"),
+        }
 
-        # Confirm invoice
-        invoices.action_post()
+        if data.get("journal_id"):
+            vals["journal_id"] = data.get("journal_id")
+
+        if data.get("cfdi_origin_id"):
+            vals["l10n_mx_edi_cfdi_origin"] = data.get("cfdi_origin_id")
+
+        # Process only the newly created invoice
+        if invoices:
+            invoices.write(vals)
+            invoices.action_post()
 
         return {
             "message": "Invoice created",
