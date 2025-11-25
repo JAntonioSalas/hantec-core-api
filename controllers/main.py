@@ -504,6 +504,7 @@ class MainController(Controller):
         send_wizard = request.env["account.move.send.wizard"].create(
             {
                 "move_id": invoice.id,
+                "checkbox_send_mail": request.get_json_data().get("send_email", False),
             }
         )
 
