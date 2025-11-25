@@ -452,7 +452,7 @@ class MainController(Controller):
 
         """
         # Generate the PDF
-        pdf_content, _ = request.env.ref("account.account_invoices")._render_qweb_pdf(
+        pdf_content, _ = request.env.ref("account.report_invoice_with_payments")._render_qweb_pdf(
             [invoice.id]
         )
         http_headers = [
