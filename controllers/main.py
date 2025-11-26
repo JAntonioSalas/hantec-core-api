@@ -338,11 +338,15 @@ class MainController(Controller):
             "l10n_mx_edi_usage": data.get("code_usage", "G01"),
         }
 
-        if data.get("journal_id"):
-            vals["journal_id"] = data.get("journal_id")
-
         if data.get("cfdi_origin_id"):
             vals["l10n_mx_edi_cfdi_origin"] = data.get("cfdi_origin_id")
+
+        mapped_keys = ["cfdi_to_public", "code_usage", "cfdi_origin_id"]
+
+        # Add any other data from the request directly to the invoice values
+        for key, value in data.items():
+            if key not in mapped_keys:
+                vals[key] = value
 
         # Process only the newly created invoice
         if invoices:
