@@ -283,8 +283,8 @@ class MainController(Controller):
             dict: A dictionary with a success message.
 
         """
-        tracking_number = request.get_json_data().get("tracking_number")
-        order.update({"yuju_carrier_tracking_ref": tracking_number})
+        data = request.get_json_data()
+        order.write(data)
 
         return {
             "message": f"The order with ID: {order.id} has been successfully updated."
