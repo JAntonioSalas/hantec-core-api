@@ -32,11 +32,6 @@ This module is licensed under the OEEL-1 (Odoo Enterprise Edition License v1.0)
 Changelog
 ---------
 
-Version 18.0.0.0.0
-
-- Changed the phone suffix length from 4 to 5 in the `create_contact` endpoint to ensure correct matching of existing contacts.
-- Changed response type for `/get_states_mexico endpoint`
-
 Version 18.0.0.0.1
 
 - Initial release with the following features:
