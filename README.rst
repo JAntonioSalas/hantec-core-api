@@ -1,5 +1,5 @@
 
-Hantec Ecommerce
+Hantec Core API
 -------
 
 Summary
@@ -32,16 +32,16 @@ This module is licensed under the OEEL-1 (Odoo Enterprise Edition License v1.0)
 Changelog
 ---------
 
-Version 18.0.0
+Version 18.0.0.0.0
 
 - Changed the phone suffix length from 4 to 5 in the `create_contact` endpoint to ensure correct matching of existing contacts.
 - Changed response type for `/get_states_mexico endpoint`
 
-Version 18.0.0
+Version 18.0.0.0.1
 
 - Initial release with the following features:
 - Added `/create_schedule_activity_invoice` endpoint.
-- Added `/get_states_mexico` endpoint.
+- Added `/get_states` endpoint.
 - Added `/get_inventory_by_sku` endpoint.
 - Added `/get_inventory` endpoint.
 - Added `/send_message_sale_order` endpoint.
@@ -59,3 +59,10 @@ Version 18.0.0
 - Added `/address_invoice` endpoint.
 - Added `/update_contact` endpoint.
 - Added `/create_contact` endpoint.
+
+Version 18.0.0.0.2
+
+- Data retrieval on all endpoints was updated to the "get_json_data" method.
+- Invoice creation has been updated to version 18.0 at `invoice_sale_order` endpoint.
+- Added `/create_credit_note/<model("account.move"):invoice>` endpoint.
+- Added `/confirm_credit_note/<model("account.move"):invoice>` endpoint.

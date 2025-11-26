@@ -1,6 +1,6 @@
 {
-    "name": "Hantec API Ecommerce",
-    "summary": "Hantec API Ecommerce",
+    "name": "Hantec Core API",
+    "summary": "Hantec Core API",
     "version": "18.0.0.0.2",
     "author": "C&O PROJECTS AND SOLUTIONS",
     "license": "OEEL-1",
