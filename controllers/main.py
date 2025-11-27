@@ -409,7 +409,7 @@ class MainController(Controller):
                 lines_to_remove.unlink()
 
         # Execute the return action
-        return_action = return_wizard.create_returns()
+        return_action = return_wizard.action_create_returns()
         return_picking_id = return_action.get("res_id")
 
         return_picking = request.env["stock.picking"].browse(return_picking_id)
