@@ -339,6 +339,103 @@ class MainController(Controller):
         }
 
     @route(
+        '/return_delivery/<model("sale.order"):order>',
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def return_delivery(self, order=False):
+        """Creates a return for the delivery associated with a sale order.
+
+        This function finds the done delivery orders associated with the sale order
+        and creates a return picking.
+
+        URL parameter:
+            - order (sale.order): The sale order model instance.
+
+        JSON request body:
+            - validate_return (bool, optional): If True, automatically validates the return picking (default False).
+
+        JSON response:
+            - message (str): A message indicating the result.
+            - return_picking_id (int): The ID of the created return picking.
+
+        Returns:
+            dict: A dictionary with the result.
+        """
+        # Find the delivery that is already done
+        picking = order.picking_ids.filtered(
+            lambda p: p.state == "done" and p.picking_type_code == "outgoing"
+        )
+
+        picking = picking[:1]  # Take only the first one if multiple
+
+        # Create the return wizard context
+        context = {
+            "active_ids": [picking.id],
+            "active_id": picking.id,
+            "active_model": "stock.picking",
+        }
+
+        # Initialize the return wizard with default values (return all items by default)
+        return_wizard = (
+            request.env["stock.return.picking"].with_context(context).create({})
+        )
+
+        data = request.get_json_data()
+        return_lines = data.get("return_lines")
+
+        # Handle partial returns
+        if return_lines:
+            # Create a map for easy lookup: {product_id: quantity_to_return}
+            requested_products = {
+                int(line["product_id"]): float(line["quantity"])
+                for line in return_lines
+            }
+
+            lines_to_remove = request.env["stock.return.picking.line"]
+
+            for line in return_wizard.product_return_moves:
+                prod_id = line.product_id.id
+
+                if prod_id in requested_products:
+                    line.quantity = requested_products[prod_id]
+                else:
+                    # If the product is not in our request list, mark it for removal
+                    lines_to_remove += line
+
+            # Remove lines that are not requested
+            if lines_to_remove:
+                lines_to_remove.unlink()
+
+        # Execute the return action
+        return_action = return_wizard.create_returns()
+        return_picking_id = return_action.get("res_id")
+
+        return_picking = request.env["stock.picking"].browse(return_picking_id)
+
+        # Validate if requested
+        validate_return = data.get("validate_return", False)
+
+        if validate_return:
+            # Set quantities done equal to demand
+            for move in return_picking.move_ids:
+                move.quantity = move.product_uom_qty
+
+            return_picking.button_validate()
+            return {
+                "message": f"Return created and validated successfully with ID: {return_picking.id}.",
+                "return_picking_id": return_picking.id,
+                "name": return_picking.name,
+            }
+
+        return {
+            "message": f"Return created successfully with ID: {return_picking.id}.",
+            "return_picking_id": return_picking.id,
+            "name": return_picking.name,
+        }
+
+    @route(
         '/invoice_sale_order/<model("sale.order"):order>',
         methods=["POST"],
         type="json",
