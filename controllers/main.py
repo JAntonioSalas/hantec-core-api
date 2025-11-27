@@ -291,6 +291,54 @@ class MainController(Controller):
         }
 
     @route(
+        '/validate_delivery/<model("sale.order"):order>',
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def validate_delivery(self, order=False):
+        """Validates the delivery associated with a sale order.
+
+        This function finds the pending delivery orders associated with the sale order,
+        sets the quantity done equal to the reserved quantity,
+        and validates the picking.
+
+        URL parameter:
+            - order (sale.order): The sale order model instance.
+
+        JSON response:
+            - message (str): A message indicating the result.
+            - validated_pickings (list): List of validated picking IDs.
+
+        Returns:
+            dict: A dictionary with the result.
+        """
+        # Find pickings that are confirmed (Waiting) or assigned (Ready)
+        pickings = order.picking_ids.filtered(
+            lambda p: p.state in ["confirmed", "assigned"]
+        )
+
+        if not pickings:
+            return {"message": "No pending deliveries found for this order."}
+
+        validated_ids = []
+        for picking in pickings:
+            # Set quantities done.
+            for move in picking.move_ids:
+                # Set the quantity done to match the demand/reserved
+                if move.quantity == 0:
+                    move.quantity = move.product_uom_qty
+
+            # Validate the picking
+            picking.with_context(skip_backorder=True).button_validate()
+            validated_ids.append(picking.id)
+
+        return {
+            "message": f"Successfully validated {len(validated_ids)} delivery orders.",
+            "validated_pickings": validated_ids,
+        }
+
+    @route(
         '/invoice_sale_order/<model("sale.order"):order>',
         methods=["POST"],
         type="json",
