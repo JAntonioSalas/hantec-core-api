@@ -377,10 +377,11 @@ class MainController(Controller):
             "active_model": "stock.picking",
         }
 
-        # Initialize the return wizard with default values (return all items by default)
-        return_wizard = (
-            request.env["stock.return.picking"].with_context(context).create({})
-        )
+        # Initialize the return wizard with default values explicitly
+        # This ensures Odoo calculates the returnable lines (product_return_moves) correctly
+        ReturnPicking = request.env["stock.return.picking"].with_context(context)
+        default_vals = ReturnPicking.default_get(ReturnPicking._fields.keys())
+        return_wizard = ReturnPicking.create(default_vals)
 
         data = request.get_json_data()
         return_lines = data.get("return_lines")
