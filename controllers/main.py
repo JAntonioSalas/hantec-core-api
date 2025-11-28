@@ -412,7 +412,7 @@ class MainController(Controller):
             # Return all products
             for line in return_wizard.product_return_moves:
                 if line.quantity == 0:
-                    line.write({"quantity": line.quantity_done})
+                    line.write({"quantity": line.move_id.quantity})
 
         # Execute the return action
         return_action = return_wizard.action_create_returns()
