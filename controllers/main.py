@@ -408,6 +408,11 @@ class MainController(Controller):
             # Remove lines that are not requested
             if lines_to_remove:
                 lines_to_remove.unlink()
+        else:
+            # Return all products
+            for line in return_wizard.product_return_moves:
+                if line.quantity == 0:
+                    line.write({"quantity": line.quantity_done})
 
         # Execute the return action
         return_action = return_wizard.action_create_returns()
