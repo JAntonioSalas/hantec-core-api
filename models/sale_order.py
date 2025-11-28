@@ -28,6 +28,12 @@ class SaleOrder(models.Model):
         ]
         address_data = shipping_address.read(fields)[0] if shipping_address else {}
 
+        # Invoice address data
+        invoice_address = self.partner_invoice_id
+        invoice_address_data = (
+            invoice_address.read(fields)[0] if invoice_address else {}
+        )
+
         # Get related shipping records
         pickings = self.picking_ids
 
@@ -37,6 +43,7 @@ class SaleOrder(models.Model):
         for picking in pickings:
             lines_data = [
                 {
+                    "product_id": line.product_id.id,
                     "product": line.product_id.name,
                     "quantity": line.product_uom_qty,
                     "done": line.quantity,
@@ -51,6 +58,7 @@ class SaleOrder(models.Model):
                 "state": picking.state,
                 "lines": lines_data,
                 "address_data": address_data,
+                "invoice_address_data": invoice_address_data,
             }
             shipping_data.append(shipping_info)
             last_picking = picking
