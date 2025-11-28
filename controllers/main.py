@@ -400,14 +400,11 @@ class MainController(Controller):
                 prod_id = line.product_id.id
 
                 if prod_id in requested_products:
-                    line.quantity = requested_products[prod_id]
+                    line.write({"quantity": requested_products[prod_id]})
                 else:
-                    # If the product is not in our request list, mark it for removal
-                    lines_to_remove += line
+                    # If the product is not in our request list, set quantity to 0 to exclude it
+                    line.write({"quantity": 0})
 
-            # Remove lines that are not requested
-            if lines_to_remove:
-                lines_to_remove.unlink()
         else:
             # Return all products
             for line in return_wizard.product_return_moves:
