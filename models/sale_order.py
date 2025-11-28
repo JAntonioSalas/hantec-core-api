@@ -39,10 +39,10 @@ class SaleOrder(models.Model):
                 {
                     "product": line.product_id.name,
                     "quantity": line.product_uom_qty,
-                    "done": line.quantity_done,
+                    "done": line.quantity,
                     "name": line.name,
                 }
-                for line in picking.move_lines
+                for line in picking.move_ids
             ]
 
             shipping_info = {
