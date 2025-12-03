@@ -1091,7 +1091,6 @@ class MainController(Controller):
         """
         data = request.get_json_data()
 
-        lot_name = data.get("lot_name")
         serial_name = data.get("serial_name")
         location_name = data.get("location_name")
         location_id = data.get("location_id")
@@ -1100,15 +1099,12 @@ class MainController(Controller):
         # Build domain for search
         domain = []
 
-        if lot_name:
-            domain.append(("name", "=", lot_name))
-
         if serial_name:
             domain.append(("name", "=", serial_name))
 
         if location_name:
             location = request.env["stock.location"].search(
-                [("name", "=", location_name)], limit=1
+                [("complete_name", "=", location_name)], limit=1
             )
             if location:
                 location_id = location.id
