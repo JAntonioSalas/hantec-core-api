@@ -1059,6 +1059,96 @@ class MainController(Controller):
         }
 
     @route(
+        "/get_inventory_by_lot",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def get_inventory_by_lot(self):
+        """Retrieves inventory details by lot number or serial number.
+
+        This function searches for stock lots/serial numbers and returns their inventory details
+        including location, product, and available quantities.
+
+        JSON request body for POST:
+            - lot_name (str, optional): The lot number to search for.
+            - serial_name (str, optional): The serial number to search for.
+            - location_id (int, optional): The ID of the stock location to filter by.
+            - product_id (int, optional): The ID of the product to filter by.
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - inventory_data (list of dict): A list of dictionaries containing:
+                - lot_name (str): The lot/serial number.
+                - product_name (str): The name of the product.
+                - product_sku (str): The SKU of the product.
+                - location_name (str): The name of the location.
+                - quantity (float): The quantity available in that location.
+                - product_qty (float): Total quantity for the lot.
+
+        Returns:
+            dict: A dictionary with a message and the inventory details.
+        """
+        data = request.get_json_data()
+
+        lot_name = data.get("lot_name")
+        serial_name = data.get("serial_name")
+        location_id = data.get("location_id")
+        product_id = data.get("product_id")
+
+        # Build domain for search
+        domain = []
+
+        if lot_name:
+            domain.append(("name", "=", lot_name))
+
+        if serial_name:
+            domain.append(("name", "=", serial_name))
+
+        if product_id:
+            domain.append(("product_id", "=", int(product_id)))
+
+        # Search for lots/serial numbers
+        lots = request.env["stock.lot"].search(domain)
+
+        inventory_data = []
+
+        for lot in lots:
+            # Get quants (stock quantities) for this lot
+            quant_domain = [("lot_id", "=", lot.id)]
+
+            if location_id:
+                quant_domain.append(("location_id", "=", int(location_id)))
+
+            # Only get quants from internal locations with available quantity
+            quant_domain.extend(
+                [("location_id.usage", "=", "internal"), ("quantity", ">", 0)]
+            )
+
+            quants = request.env["stock.quant"].search(quant_domain)
+
+            for quant in quants:
+                inventory_data.append(
+                    {
+                        "lot_id": lot.id,
+                        "lot_name": lot.name,
+                        "product_id": lot.product_id.id,
+                        "product_name": lot.product_id.name,
+                        "product_sku": lot.product_id.default_code or "",
+                        "location_id": quant.location_id.id,
+                        "location_name": quant.location_id.complete_name,
+                        "quantity": quant.quantity,
+                        "reserved_quantity": quant.reserved_quantity,
+                        "available_quantity": quant.quantity - quant.reserved_quantity,
+                    }
+                )
+
+        return {
+            "message": f"Found {len(inventory_data)} inventory records for the given lot/serial numbers.",
+            "inventory_data": inventory_data,
+        }
+
+    @route(
         '/get_states/<model("res.country"):country>',
         methods=["GET"],
         type="json",
