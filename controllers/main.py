@@ -1093,6 +1093,7 @@ class MainController(Controller):
 
         lot_name = data.get("lot_name")
         serial_name = data.get("serial_name")
+        location_name = data.get("location_name")
         location_id = data.get("location_id")
         product_id = data.get("product_id")
 
@@ -1104,6 +1105,13 @@ class MainController(Controller):
 
         if serial_name:
             domain.append(("name", "=", serial_name))
+
+        if location_name and not location_id:
+            location = request.env["stock.location"].search(
+                [("name", "=", location_name)], limit=1
+            )
+            if location:
+                location_id = location.id
 
         if product_id:
             domain.append(("product_id", "=", int(product_id)))
