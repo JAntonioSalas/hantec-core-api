@@ -1106,7 +1106,7 @@ class MainController(Controller):
         if serial_name:
             domain.append(("name", "=", serial_name))
 
-        if location_name and not location_id:
+        if location_name:
             location = request.env["stock.location"].search(
                 [("name", "=", location_name)], limit=1
             )
