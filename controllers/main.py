@@ -1186,9 +1186,18 @@ class MainController(Controller):
 
         target_quant = request.env["stock.quant"].search(domain, limit=1)
 
-        # Update the field 'quant_id' if found
+        # Update the field 'quant_id' and 'location_id' in the move line
         if target_quant:
-            move_line.write({"quant_id": target_quant.id})
+            move_line.write(
+                {
+                    "quant_id": target_quant.id,
+                    "location_id": target_quant.location_id.id,
+                }
+            )
+
+            if move_line.picking_id:
+                move_line.picking_id.write({"location_id": target_quant.location_id.id})
+
             return {
                 "message": f"Product move line {move_line_id} updated to quant {target_quant.id}."
             }
