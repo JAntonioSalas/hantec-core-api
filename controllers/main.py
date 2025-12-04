@@ -1153,6 +1153,50 @@ class MainController(Controller):
         }
 
     @route(
+        "/update_move_line_quant_by_name",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def update_move_line_quant_by_name(self):
+        """Actualiza el campo 'Recolectar de' (quant_id) usando el nombre mostrado.
+
+        Permite cambiar el Quant específico buscando por su nombre (ej. "WPC/Existencias - HNQL610020").
+
+        JSON request body:
+            - move_line_id (int): El ID del registro stock.move.line a modificar.
+            - quant_name (str): El nombre del quant tal como aparece en la interfaz (ej. "Ubicación - Lote").
+
+        JSON response:
+            - message (str): Mensaje de éxito o error.
+        """
+        data = request.get_json_data()
+        move_line_id = data.get("move_line_id")
+        serial_name = data.get("serial_name")
+        location_name = data.get("location_name")
+
+        move_line = request.env["stock.move.line"].browse(move_line_id)
+
+        domain = [
+            ("product_id", "=", move_line.product_id.id),
+            ("location_id.usage", "=", "internal"),
+            ("location_id.complete_name", "=", location_name),
+            ("lot_id.name", "=", serial_name),
+        ]
+
+        target_quant = request.env["stock.quant"].search(domain, limit=1)
+
+        # Update the field 'quant_id' if found
+        if target_quant:
+            move_line.write({"quant_id": target_quant.id})
+            return {
+                "message": f"Product move line {move_line_id} updated to quant {target_quant.id}."
+            }
+        return {
+            "message": f"Not found quant for product move line {move_line_id} with the given details."
+        }
+
+    @route(
         '/get_states/<model("res.country"):country>',
         methods=["GET"],
         type="json",
