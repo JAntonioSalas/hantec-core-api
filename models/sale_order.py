@@ -67,9 +67,11 @@ class SaleOrder(models.Model):
 
             shipping_info = {
                 "name": picking.name,
+                "picking_id": picking.id,
                 "scheduled_date": picking.scheduled_date,
                 "state": picking.state,
                 "lines": lines_data,
+                "detailed_lines": detailed_lines,
                 "address_data": address_data,
                 "invoice_address_data": invoice_address_data,
             }
