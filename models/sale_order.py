@@ -41,6 +41,19 @@ class SaleOrder(models.Model):
         shipping_data = []
         last_picking = None
         for picking in pickings:
+            detailed_lines = []
+            for move_line in picking.move_line_ids:
+                detailed_lines.append(
+                    {
+                        "id": move_line.id,
+                        "product_id": move_line.product_id.id,
+                        "product_name": move_line.product_id.name,
+                        "quantity": move_line.quantity,
+                        "current_quant_id": move_line.quant_id.id,
+                        "current_quant_name": move_line.quant_id.display_name,
+                    }
+                )
+
             lines_data = [
                 {
                     "product_id": line.product_id.id,
