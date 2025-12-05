@@ -1203,7 +1203,7 @@ class MainController(Controller):
             "product_id": product.id,
         }
 
-    @route("/get_product_stock", methods=["GET"], type="json", auth="user")
+    @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
 
@@ -1211,14 +1211,15 @@ class MainController(Controller):
         1. Single product: Provide SKU to get stock for a specific product
         2. All products: Omit SKU to get stock for all products at the location
 
-        JSON request URL parameters:
+        URL parameters:
             - sku (str, optional): Product SKU. If not provided, returns all products.
             - location_id (int): Stock location ID.
 
         Returns:
-            dict: Stock information for the product(s) at the specified location.
+            JSON response: Stock information for the product(s) at the specified location.
         """
         sku = request.params.get("sku")
         location_id = request.params.get("location_id")
 
-        return request.env["stock.quant"].get_stock_by_location(int(location_id), sku)
+        result = request.env["stock.quant"].get_stock_by_location(int(location_id), sku)
+        return request.make_json_response(result)
