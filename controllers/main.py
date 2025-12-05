@@ -1003,62 +1003,6 @@ class MainController(Controller):
         }
 
     @route(
-        ["/get_inventory", "/get_inventory_by_sku"],
-        methods=["POST", "GET"],
-        type="json",
-        auth="user",
-    )
-    def get_inventory(self):
-        """Retrieves the inventory details for all products with a SKU or a specific product based on its SKU from a given location.
-
-        This function searches for all products in the Odoo database that have a SKU (default_code not null)
-        or searches for a product using the provided SKU, and returns their inventory details from a given location
-        in a JSON response.
-
-        JSON request body for POST (if applicable):
-            - sku (str, optional): The SKU of the product to search for.
-            - location_id (int): The ID of the stock location to filter inventory by.
-
-        JSON response:
-            - message (str): A message indicating the action performed.
-            - inventory_data (list of dict): A list of dictionaries containing the inventory details for each product, including:
-                - name (str): The name of the product.
-                - default_code (str): The SKU of the product.
-                - qty_available (float): The quantity of the product available.
-                - virtual_available (float): The virtual quantity of the product available.
-
-        Returns:
-            dict: A dictionary with a message and the inventory details of the products.
-        """
-        location_id = request.get_json_data().get("location_id") or request.params.get(
-            "location_id"
-        )
-        sku = (
-            request.get_json_data().get("sku")
-            if request.httprequest.method == "POST"
-            else request.params.get("sku")
-        )
-
-        if sku:
-            domain = [("default_code", "=", sku)]
-        else:
-            domain = [("default_code", "!=", False)]
-
-        products = (
-            request.env["product.product"]
-            .with_context(location=int(location_id))
-            .search(domain)
-        )
-        inventory_data = products.read(
-            ["name", "default_code", "qty_available", "virtual_available"]
-        )
-
-        return {
-            "message": "Inventory data retrieved",
-            "inventory_data": inventory_data,
-        }
-
-    @route(
         "/get_inventory_by_lot",
         methods=["POST"],
         type="json",
@@ -1258,3 +1202,23 @@ class MainController(Controller):
             "message": f"Product found with ID: {product.id}",
             "product_id": product.id,
         }
+
+    @route("/get_product_stock", methods=["GET"], type="json", auth="user")
+    def get_product_stock(self):
+        """Retrieves detailed stock information for products by SKU and location.
+
+        Supports two modes:
+        1. Single product: Provide SKU to get stock for a specific product
+        2. All products: Omit SKU to get stock for all products at the location
+
+        JSON request URL parameters:
+            - sku (str, optional): Product SKU. If not provided, returns all products.
+            - location_id (int): Stock location ID.
+
+        Returns:
+            dict: Stock information for the product(s) at the specified location.
+        """
+        sku = request.params.get("sku")
+        location_id = request.params.get("location_id")
+
+        return request.env["stock.quant"].get_stock_by_location(int(location_id), sku)
