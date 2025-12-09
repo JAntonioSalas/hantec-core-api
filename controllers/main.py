@@ -209,11 +209,13 @@ class MainController(Controller):
         required_fields = ["partner_id", "product_lines"]
         data = request.get_json_data()
 
+        company_id = data.get("company_id") or request.env.company.id
+
         sale_order_data = {field: data[field] for field in required_fields}
 
         # Add optional fields
         for field, value in data.items():
-            if field not in required_fields:
+            if field not in required_fields and field != "company_id":
                 sale_order_data[field] = value
 
         # Prepare order lines
@@ -250,7 +252,9 @@ class MainController(Controller):
                 sale_order_vals[field] = value
 
         # Create sale order
-        sale_order = request.env["sale.order"].create(sale_order_vals)
+        sale_order = (
+            request.env["sale.order"].with_company(company_id).create(sale_order_vals)
+        )
 
         return {
             "message": f"Sale order created with ID: {sale_order.id}, Team ID: {sale_order.team_id.id}",
