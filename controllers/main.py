@@ -1222,6 +1222,7 @@ class MainController(Controller):
         sku = request.params.get("sku")
         location_id = request.params.get("location_id")
         company_id = request.params.get("company_id") or request.env.company.id
+        company_id = int(company_id) if company_id else request.env.company.id
 
         result = (
             request.env["stock.quant"]
