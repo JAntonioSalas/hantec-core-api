@@ -1043,6 +1043,7 @@ class MainController(Controller):
         location_name = data.get("location_name")
         location_id = data.get("location_id")
         product_id = data.get("product_id")
+        company_id = data.get("company_id") or request.env.company.id
 
         # Build domain for search
         domain = []
@@ -1061,7 +1062,7 @@ class MainController(Controller):
             domain.append(("product_id", "=", int(product_id)))
 
         # Search for lots/serial numbers
-        lots = request.env["stock.lot"].search(domain)
+        lots = request.env["stock.lot"].with_company(company_id).search(domain)
 
         inventory_data = []
 
@@ -1077,7 +1078,9 @@ class MainController(Controller):
                 [("location_id.usage", "=", "internal"), ("quantity", ">", 0)]
             )
 
-            quants = request.env["stock.quant"].search(quant_domain)
+            quants = (
+                request.env["stock.quant"].with_company(company_id).search(quant_domain)
+            )
 
             for quant in quants:
                 inventory_data.append(
