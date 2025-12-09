@@ -1214,12 +1214,18 @@ class MainController(Controller):
         URL parameters:
             - sku (str, optional): Product SKU. If not provided, returns all products.
             - location_id (int): Stock location ID.
+            - company_id (int, optional): Company ID. Defaults to current company.
 
         Returns:
             JSON response: Stock information for the product(s) at the specified location.
         """
         sku = request.params.get("sku")
         location_id = request.params.get("location_id")
+        company_id = request.params.get("company_id") or request.env.company.id
 
-        result = request.env["stock.quant"].get_stock_by_location(int(location_id), sku)
+        result = (
+            request.env["stock.quant"]
+            .with_company(company_id)
+            .get_stock_by_location(int(location_id), sku)
+        )
         return request.make_json_response(result)
