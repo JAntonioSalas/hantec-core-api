@@ -928,16 +928,14 @@ class MainController(Controller):
             dict: A dictionary with a success message.
 
         """
-        action = invoice.action_invoice_sent()
-        action_context = action["context"]
-        invoice_send_wizard = (
-            request.env["account.invoice.send"]
-            .with_context(action_context, active_ids=[invoice.id])
-            .create({"is_print": False})
+        send_wizard = (
+            request.env["account.move.send.wizard"]
+            .with_company(invoice.company_id.id)
+            .create({"move_id": invoice.id, "sending_methods": ["email"]})
         )
 
         # Send the invoice by email
-        invoice_send_wizard.send_and_print_action()
+        send_wizard.action_send_and_print(allow_fallback_pdf=False)
 
         return {"success": "The invoice has been successfully sent."}
 
