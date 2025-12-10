@@ -477,6 +477,7 @@ class MainController(Controller):
         }
         invoice_wizard = (
             request.env["sale.advance.payment.inv"]
+            .with_company(order.company_id.id)
             .with_context(**context)
             .create({"advance_payment_method": "delivered"})
         )
