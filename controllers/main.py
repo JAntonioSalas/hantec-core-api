@@ -37,11 +37,14 @@ class MainController(Controller):
         store_name = data.get("store_name")
         partner_id = data.get("partner_id")
         contact_data = data.get("contact_data", {})
+        company_id = data.get("company_id") or env.company.id
 
         if data.get("marketplace"):
             name = data.get("name")
             domain = [("name", "=", name)]
-            existing_contact = env["res.partner"].search(domain, limit=1)
+            existing_contact = (
+                env["res.partner"].with_company(company_id).search(domain, limit=1)
+            )
 
             if existing_contact:
                 return {
@@ -49,7 +52,9 @@ class MainController(Controller):
                     "contact_id": existing_contact.id,
                 }
             contact_data["name"] = name
-            new_contact = env["res.partner"].create(contact_data)
+            new_contact = (
+                env["res.partner"].with_company(company_id).create(contact_data)
+            )
 
             return {
                 "message": f"New contact created with ID {new_contact.id}",
@@ -66,7 +71,9 @@ class MainController(Controller):
                 # Use "like" operator to use the "%" wildcard
                 domain.append(("mobile", "like", f"%{phone_suffix}"))
 
-            existing_contact = env["res.partner"].search(domain, limit=1)
+            existing_contact = (
+                env["res.partner"].with_company(company_id).search(domain, limit=1)
+            )
 
             if existing_contact:
                 logger.debug("Contact found with ID %s", existing_contact.id)
@@ -84,7 +91,9 @@ class MainController(Controller):
             store_name_suffix = store_name[len(store_name) - 4 :]
 
             domain = [("name", "=", f"%{store_name_suffix}")]
-            existing_contact = env["res.partner"].search(domain, limit=1)
+            existing_contact = (
+                env["res.partner"].with_company(company_id).search(domain, limit=1)
+            )
 
             if existing_contact:
                 logger.debug("Contact found with ID %s", existing_contact.id)
@@ -95,7 +104,7 @@ class MainController(Controller):
 
             contact_data.update({"type": "other", "parent_id": partner_id})
 
-        new_contact = env["res.partner"].create(contact_data)
+        new_contact = env["res.partner"].with_company(company_id).create(contact_data)
         logger.info("New contact created with ID %s", new_contact.id)
         return {
             "message": f"New contact created with ID {new_contact.id}",
@@ -163,10 +172,15 @@ class MainController(Controller):
         address_data = data.get("address_data")
         address_type = data.get("address_type")  # "invoice" or "delivery"
         only_create = data.get("only_create", False)  # Boolean to omit address update
+        company_id = data.get("company_id") or request.env.company.id
 
         # Search for existing address of the given type
-        address = env["res.partner"].search(
-            [("parent_id", "=", partner_id), ("type", "=", address_type)], limit=1
+        address = (
+            env["res.partner"]
+            .with_company(company_id)
+            .search(
+                [("parent_id", "=", partner_id), ("type", "=", address_type)], limit=1
+            )
         )
 
         if address and not only_create:
@@ -175,7 +189,7 @@ class MainController(Controller):
         else:
             # Add a new address
             address_data.update({"type": address_type, "parent_id": partner_id})
-            address = env["res.partner"].create(address_data)
+            address = env["res.partner"].with_company(company_id).create(address_data)
 
         return {
             "message": f"{address_type} address successfully updated/created.",
@@ -277,9 +291,6 @@ class MainController(Controller):
         URL parameter:
             - order (sale.order): The sale order model instance.
 
-        JSON request body:
-            - tracking_number (str): The tracking number to be assigned to the sale order.
-
         JSON response:
             - message (str): A message indicating that the sale order has been successfully updated.
 
@@ -334,7 +345,9 @@ class MainController(Controller):
                     move.quantity = move.product_uom_qty
 
             # Validate the picking
-            picking.with_context(skip_backorder=True).button_validate()
+            picking.with_company(order.company_id.id).with_context(
+                skip_backorder=True
+            ).button_validate()
             validated_ids.append(picking.id)
 
         return {
@@ -382,8 +395,11 @@ class MainController(Controller):
         }
 
         # Initialize the return wizard with default values explicitly
-        # This ensures Odoo calculates the returnable lines (product_return_moves) correctly
-        ReturnPicking = request.env["stock.return.picking"].with_context(context)
+        ReturnPicking = (
+            request.env["stock.return.picking"]
+            .with_company(order.company_id.id)
+            .with_context(context)
+        )
         default_vals = ReturnPicking.default_get(ReturnPicking._fields.keys())
         return_wizard = ReturnPicking.create(default_vals)
 
@@ -397,8 +413,6 @@ class MainController(Controller):
                 int(line["product_id"]): float(line["quantity"])
                 for line in return_lines
             }
-
-            lines_to_remove = request.env["stock.return.picking.line"]
 
             for line in return_wizard.product_return_moves:
                 prod_id = line.product_id.id
@@ -419,7 +433,11 @@ class MainController(Controller):
         return_action = return_wizard.action_create_returns()
         return_picking_id = return_action.get("res_id")
 
-        return_picking = request.env["stock.picking"].browse(return_picking_id)
+        return_picking = (
+            request.env["stock.picking"]
+            .with_company(order.company_id.id)
+            .browse(return_picking_id)
+        )
 
         # Validate if requested
         validate_return = data.get("validate_return", False)
@@ -543,8 +561,10 @@ class MainController(Controller):
         journal_id = data.get("journal_id")
         payment_method_id = data.get("payment_method_id")
 
-        register_payment_wizard = request.env["account.payment.register"].with_context(
-            active_model="account.move", active_ids=[invoice.id]
+        register_payment_wizard = (
+            request.env["account.payment.register"]
+            .with_company(invoice.company_id.id)
+            .with_context(active_model="account.move", active_ids=[invoice.id])
         )
 
         wizard = register_payment_wizard.create(
@@ -782,7 +802,10 @@ class MainController(Controller):
 
         # Create the wizard
         reversal_wizard = (
-            request.env["account.move.reversal"].with_context(**ctx).create(wizard_vals)
+            request.env["account.move.reversal"]
+            .with_company(invoice.company_id.id)
+            .with_context(**ctx)
+            .create(wizard_vals)
         )
 
         # Execute the reversal action
@@ -796,17 +819,25 @@ class MainController(Controller):
                 credit_note_id = action["res_id"]
             elif action.get("domain"):
                 domain = action["domain"]
-                credit_notes = request.env["account.move"].search(domain, limit=1)
+                credit_notes = (
+                    request.env["account.move"]
+                    .with_company(invoice.company_id.id)
+                    .search(domain, limit=1)
+                )
                 if credit_notes:
                     credit_note_id = credit_notes.id
 
         # Fallback if action parsing fails
         if not credit_note_id:
             # Find the move that has this invoice as the reversed entry
-            credit_note = request.env["account.move"].search(
-                [("reversed_entry_id", "=", invoice.id)],
-                order="id desc",
-                limit=1,
+            credit_note = (
+                request.env["account.move"]
+                .with_company(invoice.company_id.id)
+                .search(
+                    [("reversed_entry_id", "=", invoice.id)],
+                    order="id desc",
+                    limit=1,
+                )
             )
             if credit_note:
                 credit_note_id = credit_note.id
@@ -863,10 +894,10 @@ class MainController(Controller):
         vals_to_update.update(data)
 
         if vals_to_update:
-            credit_note.write(vals_to_update)
+            credit_note.with_company(credit_note.company_id.id).write(vals_to_update)
 
         # Confirm (Post) the credit note
-        credit_note.action_post()
+        credit_note.with_company(credit_note.company_id.id).action_post()
 
         return {
             "message": f"Credit note {credit_note.name} confirmed successfully.",
@@ -933,7 +964,7 @@ class MainController(Controller):
 
         """
         # Confirm the sale order
-        order.action_confirm()
+        order.with_company(order.company_id.id).action_confirm()
 
         return {"message": f"Sale order with ID: {order.id} successfully confirmed."}
 
@@ -1057,8 +1088,10 @@ class MainController(Controller):
             domain.append(("name", "=", serial_name))
 
         if location_name:
-            location = request.env["stock.location"].search(
-                [("complete_name", "=", location_name)], limit=1
+            location = (
+                request.env["stock.location"]
+                .with_company(company_id)
+                .search([("complete_name", "=", location_name)], limit=1)
             )
             if location:
                 location_id = location.id
@@ -1130,8 +1163,11 @@ class MainController(Controller):
         move_line_id = data.get("move_line_id")
         serial_name = data.get("serial_name")
         location_name = data.get("location_name")
+        company_id = data.get("company_id") or request.env.company.id
 
-        move_line = request.env["stock.move.line"].browse(move_line_id)
+        move_line = (
+            request.env["stock.move.line"].with_company(company_id).browse(move_line_id)
+        )
 
         domain = [
             ("product_id", "=", move_line.product_id.id),
@@ -1140,7 +1176,9 @@ class MainController(Controller):
             ("lot_id.name", "=", serial_name),
         ]
 
-        target_quant = request.env["stock.quant"].search(domain, limit=1)
+        target_quant = (
+            request.env["stock.quant"].with_company(company_id).search(domain, limit=1)
+        )
 
         # Update the field 'quant_id' and 'location_id' in the move line
         if target_quant:
@@ -1205,9 +1243,12 @@ class MainController(Controller):
             - message (str): A message indicating the result.
         """
         sku = request.get_json_data().get("sku")
+        company_id = request.get_json_data().get("company_id") or request.env.company.id
 
-        product = request.env["product.product"].search(
-            [("default_code", "=", sku)], limit=1
+        product = (
+            request.env["product.product"]
+            .with_company(company_id)
+            .search([("default_code", "=", sku)], limit=1)
         )
 
         return {
