@@ -5,6 +5,43 @@ logger = logging.getLogger(__name__)
 
 
 class MainController(Controller):
+    @route("/search_contact", methods=["POST"], type="json", auth="user")
+    def search_contact(self):
+        """Searches for contact based on multiple parameters.
+
+        This function searches for a contacts using various parameters such as email,
+        phone, mobile, and name. It implements special handling for phone numbers to ensure
+        accurate matching by normalizing and comparing phone digits.
+
+        JSON request body:
+            - email (str, optional): The email of the contact.
+            - phone (str, optional): The phone number of the contact.
+            - mobile (str, optional): The mobile number of the contact.
+            - name (str, optional): The name of the contact.
+            - strict_phone (bool, optional): If True, performs strict phone matching.
+              If False (default), matches last 10 digits
+
+        Returns:
+            dict: A dictionary with search results and contact details.
+        """
+        data = request.get_json_data()
+        company_id = data.get("company_id") or request.env.company.id
+
+        contacts = (
+            request.env["res.partner"]
+            .with_company(company_id)
+            .search_contacts_by_params(data)
+        )
+
+        contact_data = contacts.read(
+            ["name", "email", "phone", "mobile", "create_date"]
+        )
+
+        return {
+            "message": f"Found {len(contacts)} contacts matching the criteria.",
+            "contacts": contact_data,
+        }
+
     @route("/create_contact", methods=["POST"], type="json", auth="user")
     def create_contact(self):
         """Combines the logic of searching and creating contacts based on email, phone, or store name.
