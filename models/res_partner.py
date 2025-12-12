@@ -1,5 +1,4 @@
 from odoo import models, api
-import re
 
 
 class ResPartner(models.Model):

@@ -1,5 +1,5 @@
 from odoo.http import request, Controller, route
-import logging, re
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ class MainController(Controller):
             - phone (str, optional): The phone number of the contact.
             - store_name (str, optional): The store name associated with the contact.
             - name (str, optional): The name of the contact.
-            - marketplace (bool, optional): Value to validate if it is required create different contact
             - partner_id (int, optional): The parent ID for the contact.
             - contact_data (dict, optional): Additional contact data.
 
@@ -69,83 +68,59 @@ class MainController(Controller):
         """
         env = request.env
         data = request.get_json_data()
-        email = data.get("email")
-        phone = data.get("phone")
-        store_name = data.get("store_name")
-        partner_id = data.get("partner_id")
-        contact_data = data.get("contact_data", {})
         company_id = data.get("company_id") or env.company.id
 
-        if data.get("marketplace"):
-            name = data.get("name")
-            domain = [("name", "=", name)]
-            existing_contact = (
-                env["res.partner"].with_company(company_id).search(domain, limit=1)
-            )
+        partner = env["res.partner"].with_company(company_id)
 
-            if existing_contact:
-                return {
-                    "message": f"Contact found with ID: {existing_contact.id}",
-                    "contact_id": existing_contact.id,
-                }
-            contact_data["name"] = name
-            new_contact = (
-                env["res.partner"].with_company(company_id).create(contact_data)
-            )
+        existing_contacts = partner.search_contacts_by_params(data)
 
+        if existing_contacts:
+            contact = existing_contacts[-1]
+            logger.info("Contact found with ID %s", contact.id)
             return {
-                "message": f"New contact created with ID {new_contact.id}",
-                "contact_id": new_contact.id,
+                "message": f"Contact found with ID: {contact.id}",
+                "contact_id": contact.id,
+                "is_new": False,
             }
 
-        if email or phone:
-            phone_suffix = phone[len(phone) - 4 :] if phone else None
-
-            domain = []
-            if email:
-                domain.append(("email", "=", f"{email}"))
-            if phone_suffix:
-                # Use "like" operator to use the "%" wildcard
-                domain.append(("mobile", "like", f"%{phone_suffix}"))
-
-            existing_contact = (
-                env["res.partner"].with_company(company_id).search(domain, limit=1)
-            )
-
-            if existing_contact:
-                logger.debug("Contact found with ID %s", existing_contact.id)
-                return {
-                    "message": f"Contact found with ID: {existing_contact.id}.",
-                    "contact_id": existing_contact.id,
-                }
-
-            if "email" not in contact_data and email:
-                contact_data["email"] = email
-            if "phone" not in contact_data and phone:
-                contact_data["phone"] = phone
-
+        store_name = data.get("store_name")
         if store_name:
-            store_name_suffix = store_name[len(store_name) - 4 :]
+            store_domain = [("name", "=ilike", f"%{store_name}")]
+            parent_contact = partner.search(store_domain, limit=1)
 
-            domain = [("name", "=", f"%{store_name_suffix}")]
-            existing_contact = (
-                env["res.partner"].with_company(company_id).search(domain, limit=1)
-            )
-
-            if existing_contact:
-                logger.debug("Contact found with ID %s", existing_contact.id)
+            if parent_contact:
                 return {
-                    "message": f"Contact found with ID: {existing_contact.id}.",
-                    "contact_id": existing_contact.id,
+                    "message": f"Store found with ID: {parent_contact.id}.",
+                    "contact_id": parent_contact.id,
+                    "is_new": False,
                 }
 
-            contact_data.update({"type": "other", "parent_id": partner_id})
+            partner_id = data.get("partner_id")
+            if partner_id:
+                data.setdefault("contact_data", {})
+                data["contact_data"].update(
+                    {
+                        "type": "other",
+                        "parent_id": partner_id,
+                    }
+                )
 
-        new_contact = env["res.partner"].with_company(company_id).create(contact_data)
-        logger.info("New contact created with ID %s", new_contact.id)
+        contact_vals = data.get("contact_data", {})
+
+        for field in ("name", "email", "phone", "mobile"):
+            val = data.get(field)
+            if val:
+                contact_vals.setdefault(field, val)
+
+        contact_vals["company_id"] = company_id
+
+        new_contact = partner.create(contact_vals)
+        logger.info("Contact created with ID %s", new_contact.id)
+
         return {
             "message": f"New contact created with ID {new_contact.id}",
             "contact_id": new_contact.id,
+            "is_new": True,
         }
 
     @route(
@@ -1031,12 +1006,13 @@ class MainController(Controller):
         Returns:
             dict: A dictionary with a confirmation message.
         """
+        data = request.get_json_data()
         activity = order.activity_schedule(
-            activity_type_id=request.get_json_data().get("activity_type_id"),
-            summary=request.get_json_data().get("summary", ""),
-            note=request.get_json_data().get("note", ""),
-            date_deadline=request.get_json_data().get("date_deadline"),
-            user_id=request.get_json_data().get("user_id", request.env.uid),
+            activity_type_id=data.get("activity_type_id"),
+            summary=data.get("summary", ""),
+            note=data.get("note", ""),
+            date_deadline=data.get("date_deadline"),
+            user_id=data.get("user_id", request.env.uid),
         )
 
         return {
@@ -1090,10 +1066,11 @@ class MainController(Controller):
         including location, product, and available quantities.
 
         JSON request body for POST:
-            - lot_name (str, optional): The lot number to search for.
-            - serial_name (str, optional): The serial number to search for.
+            - serial_name (str, optional): The lot/serial number to search for.
+            - location_name (str, optional): The name of the stock location to filter by.
             - location_id (int, optional): The ID of the stock location to filter by.
             - product_id (int, optional): The ID of the product to filter by.
+            - company_id (int, optional): The company ID.
 
         JSON response:
             - message (str): A message indicating the action performed.
@@ -1277,8 +1254,9 @@ class MainController(Controller):
             - product_id (int): The ID of the product if found.
             - message (str): A message indicating the result.
         """
-        sku = request.get_json_data().get("sku")
-        company_id = request.get_json_data().get("company_id") or request.env.company.id
+        data = request.get_json_data()
+        sku = data.get("sku")
+        company_id = data.get("company_id") or request.env.company.id
 
         product = (
             request.env["product.product"]
@@ -1309,8 +1287,7 @@ class MainController(Controller):
         """
         sku = request.params.get("sku")
         location_id = request.params.get("location_id")
-        company_id = request.params.get("company_id") or request.env.company.id
-        company_id = int(company_id) if company_id else request.env.company.id
+        company_id = int(request.params.get("company_id") or request.env.company.id)
 
         result = (
             request.env["stock.quant"]
