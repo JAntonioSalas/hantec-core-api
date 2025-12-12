@@ -61,3 +61,13 @@ Version 18.0.0.0.2
 - Invoice creation has been updated to version 18.0 at `invoice_sale_order` endpoint.
 - Added `/create_credit_note/<model("account.move"):invoice>` endpoint.
 - Added `/confirm_credit_note/<model("account.move"):invoice>` endpoint.
+- Added `/download_invoice_xml/<model("account.move"):invoice>` endpoint.
+- Added `/search_contact` endpoint.
+- Added `/create_delivery_address` endpoint.
+- Added `/create_invoice_address` endpoint.
+- Added `/validate_delivery/<model("sale.order"):order>` endpoint.
+- Added `/return_delivery/<model("sale.order"):order>` endpoint.
+- Added `/get_inventory_by_lot` endpoint.
+- Added `/update_move_line_quant_by_name` endpoint.
+- Added `/get_product_id` endpoint.
+- Added `/get_product_stock` endpoint.
