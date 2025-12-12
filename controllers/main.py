@@ -124,7 +124,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/update_contact/<model("res.partner"):partner>',
+        "/update_contact/<model('res.partner'):partner>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -289,7 +289,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/update_sale_order/<model("sale.order"):order>',
+        "/update_sale_order/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -318,7 +318,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/validate_delivery/<model("sale.order"):order>',
+        "/validate_delivery/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -368,7 +368,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/return_delivery/<model("sale.order"):order>',
+        "/return_delivery/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -473,7 +473,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/invoice_sale_order/<model("sale.order"):order>',
+        "/invoice_sale_order/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -542,7 +542,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/register_payment_invoice/<model("account.move"):invoice>',
+        "/register_payment_invoice/<model('account.move'):invoice>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -594,7 +594,7 @@ class MainController(Controller):
         return {"success": "The payment has been successfully registered."}
 
     @route(
-        '/get_shipping_info/<model("sale.order"):order>',
+        "/get_shipping_info/<model('sale.order'):order>",
         methods=["GET"],
         type="json",
         auth="user",
@@ -618,7 +618,7 @@ class MainController(Controller):
         return order.get_shipping_info()
 
     @route(
-        '/download_invoice/<model("account.move"):invoice>',
+        "/download_invoice/<model('account.move'):invoice>",
         methods=["GET"],
         type="http",
         auth="user",
@@ -650,7 +650,7 @@ class MainController(Controller):
         return request.make_response(pdf_content, headers=http_headers)
 
     @route(
-        '/download_invoice_xml/<model("account.move"):invoice>',
+        "/download_invoice_xml/<model('account.move'):invoice>",
         methods=["GET"],
         type="http",
         auth="user",
@@ -697,7 +697,7 @@ class MainController(Controller):
         return request.make_response(xml_content, headers=http_headers)
 
     @route(
-        '/stamp_invoice/<model("account.move"):invoice>',
+        "/stamp_invoice/<model('account.move'):invoice>",
         methods=["POST"],
         auth="user",
         type="json",
@@ -770,7 +770,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/create_credit_note/<model("account.move"):invoice>',
+        "/create_credit_note/<model('account.move'):invoice>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -860,7 +860,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/confirm_credit_note/<model("account.move"):credit_note>',
+        "/confirm_credit_note/<model('account.move'):credit_note>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -919,7 +919,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/send_invoice_by_email/<model("account.move"):invoice>',
+        "/send_invoice_by_email/<model('account.move'):invoice>",
         type="json",
         auth="user",
         methods=["POST"],
@@ -952,7 +952,7 @@ class MainController(Controller):
         return {"success": "The invoice has been successfully sent."}
 
     @route(
-        '/confirm_sale_order/<model("sale.order"):order>',
+        "/confirm_sale_order/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -980,8 +980,8 @@ class MainController(Controller):
 
     @route(
         [
-            '/create_schedule_activity/<model("sale.order"):order>',
-            '/create_schedule_activity_invoice/<model("account.move"):order>',
+            "/create_schedule_activity/<model('sale.order'):order>",
+            "/create_schedule_activity_invoice/<model('account.move'):order>",
         ],
         methods=["POST"],
         type="json",
@@ -1020,7 +1020,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/send_message_sale_order/<model("sale.order"):order>',
+        "/send_message_sale_order/<model('sale.order'):order>",
         methods=["POST"],
         type="json",
         auth="user",
@@ -1160,16 +1160,14 @@ class MainController(Controller):
         auth="user",
     )
     def update_move_line_quant_by_name(self):
-        """Actualiza el campo 'Recolectar de' (quant_id) usando el nombre mostrado.
-
-        Permite cambiar el Quant específico buscando por su nombre (ej. "WPC/Existencias - HNQL610020").
+        """Updates the 'quant_id' field in a stock move line using the displayed name.
 
         JSON request body:
-            - move_line_id (int): El ID del registro stock.move.line a modificar.
-            - quant_name (str): El nombre del quant tal como aparece en la interfaz (ej. "Ubicación - Lote").
+            - move_line_id (int): The ID of the stock.move.line record to modify.
+            - quant_name (str): The name of the quant as displayed in the interface (e.g., "Location - Lot").
 
         JSON response:
-            - message (str): Mensaje de éxito o error.
+            - message (str): Success or error message.
         """
         data = request.get_json_data()
         move_line_id = data.get("move_line_id")
@@ -1212,7 +1210,7 @@ class MainController(Controller):
         }
 
     @route(
-        '/get_states/<model("res.country"):country>',
+        "/get_states/<model('res.country'):country>",
         methods=["GET"],
         type="json",
         auth="user",
