@@ -71,3 +71,4 @@ Version 18.0.0.0.2
 - Added `/update_move_line_quant_by_name` endpoint.
 - Added `/get_product_id` endpoint.
 - Added `/get_product_stock` endpoint.
+- Added `/get_localities` endpoint.
