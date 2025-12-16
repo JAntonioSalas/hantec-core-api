@@ -754,6 +754,7 @@ class MainController(Controller):
             - reason (str): The reason for the credit note.
             - date (str, optional): The reversal date (YYYY-MM-DD).
             - journal_id (int, optional): The ID of the specific journal to use.
+            - confirm (bool, optional): Whether to confirm the credit note after creation.
 
         JSON response:
             - message (str): A message indicating the result.
@@ -765,6 +766,7 @@ class MainController(Controller):
         data = request.get_json_data()
         reason = data.get("reason", "revertir")
         journal_id = data.get("journal_id", 1)
+        confirm = data.get("confirm", False)
 
         # Context is required for the wizard to know which invoice to reverse
         ctx = {
@@ -820,68 +822,70 @@ class MainController(Controller):
             if credit_note:
                 credit_note_id = credit_note.id
 
+        # Confirm if requested
+        if confirm:
+            credit_note.with_company(invoice.company_id.id).action_post()
+
         return {
             "message": "Credit note created successfully.",
             "credit_note_id": credit_note_id,
+            "name": credit_note.name,
+            "state": credit_note.state,
+            "cfdi_origin": credit_note.l10n_mx_edi_cfdi_origin,
         }
 
     @route(
-        "/confirm_credit_note/<model('account.move'):credit_note>",
+        "/update_credit_note/<model('account.move'):credit_note>",
         methods=["POST"],
         type="json",
         auth="user",
     )
-    def confirm_credit_note(self, credit_note=None):
+    def update_credit_note(self, credit_note=None):
         """Updates and confirms a draft credit note.
 
         This function updates a draft credit note with provided values and then confirms (posts) it.
         It specifically handles mapping for common Mexican localization fields if provided.
 
         URL parameter:
-            - credit_note (account.move): The credit note model instance (must be in draft).
+            - credit_note (account.move): The credit note model instance.
 
         JSON request body:
-            - usage (str, optional): The CFDI usage code (e.g., "G02"). Maps to 'l10n_mx_edi_usage'.
-            - cfdi_origin (str, optional): The CFDI Origin string (e.g., "01|UUID"). Maps to 'l10n_mx_edi_cfdi_origin'.
-            - payment_method_id (int, optional): ID of the payment method. Maps to 'l10n_mx_edi_payment_method_id'.
-            - Any other field valid for account.move (e.g., "ref", "date", "invoice_date").
+            - update_vals (dict, optional): Values to update
+            - confirm (bool, optional): Whether to confirm the credit note after updating.
 
         JSON response:
             - message (str): Success message.
             - credit_note_id (int): ID of the confirmed credit note.
             - name (str): The name/number of the confirmed credit note.
+            - state (str): The state of the confirmed credit note.
         """
         data = request.get_json_data()
-        vals_to_update = {}
+        update_vals = data.get("update_vals", {})
+        confirm = data.get("confirm", False)
 
-        # Helper mapping for common Mexican localization fields based on the image provided
-        # This allows sending "usage" instead of the long technical name
-        if "usage" in data:
-            vals_to_update["l10n_mx_edi_usage"] = data.pop("usage")
-        if "cfdi_public" in data:
-            vals_to_update["l10n_mx_edi_cfdi_to_public"] = data.pop("cfdi_public")
-        if "cfdi_origin" in data:
-            vals_to_update["l10n_mx_edi_cfdi_origin"] = data.pop("cfdi_origin")
-        if "payment_method_id" in data:
-            vals_to_update["l10n_mx_edi_payment_method_id"] = data.pop(
-                "payment_method_id"
-            )
+        if update_vals:
+            field_mapping = {
+                "usage": "l10n_mx_edi_usage",
+                "cfdi_public": "l10n_mx_edi_cfdi_to_public",
+                "cfdi_origin": "l10n_mx_edi_cfdi_origin",
+                "payment_method_id": "l10n_mx_edi_payment_method_id",
+            }
+            vals_to_write = {}
+            for key, value in update_vals.items():
+                vals_to_write[field_mapping.get(key, key)] = value
 
-        # Add any remaining data from the request directly to the update values
-        # This allows updating standard fields like 'ref', 'invoice_date', etc.
-        vals_to_update.update(data)
-
-        if vals_to_update:
-            credit_note.with_company(credit_note.company_id.id).write(vals_to_update)
+            credit_note.with_company(credit_note.company_id.id).write(vals_to_write)
 
         # Confirm (Post) the credit note
-        credit_note.with_company(credit_note.company_id.id).action_post()
+        if confirm:
+            credit_note.with_company(credit_note.company_id.id).action_post()
 
         return {
             "message": f"Credit note {credit_note.name} confirmed successfully.",
             "credit_note_id": credit_note.id,
             "name": credit_note.name,
             "cfdi_origin": credit_note.l10n_mx_edi_cfdi_origin,
+            "state": credit_note.state,
         }
 
     @route(
