@@ -1239,6 +1239,38 @@ class MainController(Controller):
             "states_list": states_list,
         }
 
+    @route(
+        "/get_localities/<model('res.country.state'):state>",
+        methods=["GET"],
+        type="json",
+        auth="user",
+    )
+    def get_localities(self, state):
+        """Retrieves the list of localities in the specified state.
+
+        This function retrieves the list of localities associated with the given state in the Odoo database
+        and returns them in a JSON response.
+
+        URL parameter:
+            - state (res.country.state): The state model instance.
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - localities_list (list of dict): A list of dictionaries containing the IDs and names of the localities.
+
+        Returns:
+            dict: A dictionary with a message and the list of localities.
+        """
+        localities = request.env["l10n_mx_edi.res.locality"].search(
+            [("state_id", "=", state.id)]
+        )
+        localities_list = localities.read(["name", "code"])
+
+        return {
+            "message": f"List localities from {state.name}",
+            "localities_list": localities_list,
+        }
+
     @route("/get_product_id", methods=["POST"], type="json", auth="user")
     def get_product_id(self):
         """Get Product ID by Internal Reference.
