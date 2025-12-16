@@ -624,77 +624,43 @@ class MainController(Controller):
         auth="user",
     )
     def download_invoice(self, invoice=False):
-        """Downloads an invoice as a PDF.
-
-        This function generates and downloads a PDF file for the invoice identified by its ID.
+        """Downloads an invoice as PDF or XML based on format parameter.
 
         URL parameter:
             - invoice (account.move): The invoice model instance.
-
-        HTTP response:
-            - Content-Type: application/pdf
-            - Content-Length: The length of the PDF content
-
-        Returns:
-            response: An HTTP response with the PDF content of the invoice.
-
+            - format (str): 'pdf' (default) or 'xml'
         """
-        # Generate the PDF
-        pdf_content, _ = request.env["ir.actions.report"]._render_qweb_pdf(
-            "account.report_invoice_with_payments", [invoice.id]
-        )
-        http_headers = [
-            ("Content-Type", "application/pdf"),
-            ("Content-Length", len(pdf_content)),
-        ]
-        return request.make_response(pdf_content, headers=http_headers)
+        format_type = request.params.get("format", "pdf")
 
-    @route(
-        "/download_invoice_xml/<model('account.move'):invoice>",
-        methods=["GET"],
-        type="http",
-        auth="user",
-    )
-    def download_invoice_xml(self, invoice=False):
-        """Downloads the XML of an invoice.
+        if format_type == "xml":
+            attachment = request.env["ir.attachment"].search(
+                [
+                    ("res_model", "=", "account.move"),
+                    ("res_id", "=", invoice.id),
+                    ("mimetype", "=", "application/xml"),
+                ],
+                limit=1,
+                order="id desc",
+            )
+            if not attachment:
+                return request.not_found()
 
-        This function searches for the XML attachment associated with the invoice
-        and returns it as a file download.
-
-        URL parameter:
-            - invoice (account.move): The invoice model instance.
-
-        HTTP response:
-            - Content-Type: application/xml
-            - Content-Disposition: attachment; filename="invoice.xml"
-
-        Returns:
-            response: An HTTP response with the XML content of the invoice.
-
-        """
-        # Search for the XML attachment related to the invoice
-        attachment = request.env["ir.attachment"].search(
-            [
-                ("res_model", "=", "account.move"),
-                ("res_id", "=", invoice.id),
-                ("mimetype", "=", "application/xml"),
-            ],
-            limit=1,
-            order="id desc",  # Get the latest attachment
-        )
-
-        if not attachment:
-            return request.not_found()
-
-        xml_content = attachment.raw
-        filename = attachment.name or f"invoice_{invoice.id}.xml"
+            content = attachment.raw
+            filename = attachment.name or f"invoice_{invoice.id}.xml"
+            content_type = "application/xml"
+        else:
+            content, _ = request.env["ir.actions.report"]._render_qweb_pdf(
+                "account.report_invoice_with_payments", [invoice.id]
+            )
+            filename = f"invoice_{invoice.id}.pdf"
+            content_type = "application/pdf"
 
         http_headers = [
-            ("Content-Type", "application/xml"),
-            ("Content-Length", len(xml_content)),
+            ("Content-Type", content_type),
+            ("Content-Length", len(content)),
             ("Content-Disposition", f'attachment; filename="{filename}"'),
         ]
-        return request.make_response(xml_content, headers=http_headers)
+        return request.make_response(content, headers=http_headers)
 
     @route(
         "/stamp_invoice/<model('account.move'):invoice>",
