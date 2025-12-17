@@ -1270,6 +1270,90 @@ class MainController(Controller):
             "product_id": product.id,
         }
 
+    @route("/create_purchase_order", methods=["POST"], type="json", auth="user")
+    def create_purchase_order(self):
+        """Creates and confirms a purchase order.
+
+        This function creates a purchase order using the details provided in the JSON request body
+        and automatically confirms it after creation.
+
+        JSON request body:
+            Required fields:
+                - partner_id (int): The ID of the vendor/supplier.
+                - product_lines (list of dicts): A list of dictionaries containing product details:
+                    - product_id (int): The ID of the product.
+                    - product_qty (float): The quantity of the product.
+                    - price_unit (float, optional): The unit price of the product (default is 0).
+
+            Optional fields:
+                - company_id (int, optional): The company ID. Defaults to the current company.
+                - user_id (int, optional): The user ID. Defaults to the current user.
+                - date_planned (str, optional): The planned date for the purchase order.
+                - picking_type_id (int, optional): The picking type ID.
+
+        JSON response:
+            - message (str): A success message with the purchase order ID and name.
+            - purchase_order_id (int): The ID of the created purchase order.
+            - purchase_order_name (str): The name/number of the purchase order.
+            - state (str): The state of the purchase order (should be "purchase" after confirmation).
+
+        Returns:
+            dict: A dictionary with a success message and purchase order details.
+        """
+        data = request.get_json_data()
+        company_id = data.get("company_id") or request.env.company.id
+
+        # Prepare order lines for purchase order
+        order_lines = [
+            (
+                0,
+                0,
+                {
+                    "product_id": line["product_id"],
+                    "product_qty": line["product_qty"],
+                    "price_unit": line.get("price_unit", 0),
+                },
+            )
+            for line in data["product_lines"]
+        ]
+
+        # Prepare purchase order values
+        purchase_order_vals = {
+            "partner_id": data["partner_id"],
+            "order_line": order_lines,
+        }
+
+        # Optional fields
+        optional_field_mapping = {
+            "company_id": "company_id",
+            "user_id": "user_id",
+            "date_planned": "date_planned",
+            "picking_type_id": "picking_type_id",
+        }
+
+        for data_key, vals_key in optional_field_mapping.items():
+            if data_key in data:
+                purchase_order_vals[vals_key] = data[data_key]
+
+        # Create purchase order
+        purchase_order = (
+            request.env["purchase.order"]
+            .with_company(company_id)
+            .create(purchase_order_vals)
+        )
+        logger.info("Purchase order created with ID %s", purchase_order.id)
+
+        # Confirm the purchase order
+        purchase_order.button_confirm()
+        logger.info("Purchase order with ID %s confirmed", purchase_order.id)
+
+        return {
+            "message": f"Purchase order created and confirmed with ID: {purchase_order.id}",
+            "purchase_order_id": purchase_order.id,
+            "purchase_order_name": purchase_order.name,
+            "state": purchase_order.state,
+        }
+
     @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
