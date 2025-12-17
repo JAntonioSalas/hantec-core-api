@@ -17,13 +17,6 @@ Authors and Maintainers
 - Maintainers:
   - C&O PROJECTS AND SOLUTIONS
 
-Development Status
-------------------
-
-The current development status of this module is:
-
-- Development Status: **Beta**
-
 License
 -------
 
@@ -60,8 +53,7 @@ Version 18.0.0.0.2
 - Data retrieval on all endpoints was updated to the "get_json_data" method.
 - Invoice creation has been updated to version 18.0 at `invoice_sale_order` endpoint.
 - Added `/create_credit_note/<model("account.move"):invoice>` endpoint.
-- Added `/confirm_credit_note/<model("account.move"):invoice>` endpoint.
-- Added `/download_invoice_xml/<model("account.move"):invoice>` endpoint.
+- Added `/update_credit_note/<model("account.move"):invoice>` endpoint.
 - Added `/search_contact` endpoint.
 - Added `/create_delivery_address` endpoint.
 - Added `/create_invoice_address` endpoint.
