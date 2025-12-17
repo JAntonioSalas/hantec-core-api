@@ -824,6 +824,7 @@ class MainController(Controller):
 
         # Confirm if requested
         if confirm:
+            credit_note = request.env["account.move"].browse(credit_note_id)
             credit_note.with_company(invoice.company_id.id).action_post()
 
         return {
