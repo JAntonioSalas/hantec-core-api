@@ -1427,6 +1427,83 @@ class MainController(Controller):
             "move_lines": move_lines_data,
         }
 
+    @route(
+        "/validate_reception/<model('stock.picking'):picking>",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def validate_reception(self, picking=False):
+        """Validates a reception with lot/serial number assignment.
+
+        Assigns lot/serial numbers to move lines and validates the picking.
+        Creates the lot if it does not exist.
+
+        URL parameter:
+            - picking (stock.picking): The reception picking model instance.
+
+        JSON request body:
+            - move_lines (list of dicts): List of move lines with lot/serial info:
+                - move_line_id (int): The ID of the stock.move.line.
+                - lot_name (str): The lot/serial number to assign.
+
+        JSON response:
+            - message (str): Success message.
+            - picking_id (int): The ID of the picking.
+            - picking_name (str): The name of the picking.
+            - state (str): The state of the picking after validation.
+
+        Returns:
+            dict: A dictionary with the result of the reception validation.
+        """
+        data = request.get_json_data()
+        move_lines_data = data.get("move_lines", [])
+        company_id = picking.company_id.id
+
+        for line_data in move_lines_data:
+            move_line_id = line_data.get("move_line_id")
+            lot_name = line_data.get("lot_name")
+
+            if not move_line_id or not lot_name:
+                continue
+
+            move_line = (
+                request.env["stock.move.line"]
+                .with_company(company_id)
+                .browse(move_line_id)
+            )
+
+        # Create the lot/serial number
+        lot = (
+            request.env["stock.lot"]
+            .with_company(company_id)
+            .create(
+                {
+                    "name": lot_name,
+                    "product_id": move_line.product_id.id,
+                    "company_id": company_id,
+                }
+            )
+        )
+
+        move_line.write(
+            {
+                "lot_id": lot.id,
+                "quantity": move_line.move_id.product_uom_qty,
+            }
+        )
+
+        picking.with_company(company_id).with_context(
+            skip_backorder=True
+        ).button_validate()
+
+        return {
+            "message": f"Reception {picking.name} validated successfully.",
+            "picking_id": picking.id,
+            "picking_name": picking.name,
+            "state": picking.state,
+        }
+
     @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
