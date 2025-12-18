@@ -542,6 +542,52 @@ class MainController(Controller):
         }
 
     @route(
+        "/invoice_purchase_order/<model('purchase.order'):order>",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def invoice_purchase_order(self, order=False):
+        """Creates a vendor bill for a purchase order.
+
+        This function creates a vendor bill for a specified purchase order.
+
+        URL parameter:
+            - order (purchase.order): The purchase order model instance.
+
+        JSON request body:
+            - post (bool, optional): Whether to post/confirm the bill after creation (default False).
+
+        JSON response:
+            - message (str): Success message.
+            - invoice_id (int): The ID of the created vendor bill.
+            - invoice_name (str): The name of the vendor bill.
+            - state (str): The state of the invoice
+
+        Returns:
+            dict: A dictionary with the result.
+        """
+        data = request.get_json_data()
+        company_id = order.company_id.id
+        post_invoice = data.get("post", False)
+
+        # Create vendor bill directly from purchase order
+        order.with_company(company_id).action_create_invoice()
+
+        invoice = order.invoice_ids.filtered(lambda inv: inv.state == "draft")[:1]
+
+        # Post the invoice if requested
+        if post_invoice:
+            invoice.with_company(company_id).action_post()
+
+        return {
+            "message": f"Vendor bill created for purchase order {order.name}.",
+            "invoice_id": invoice.id,
+            "invoice_name": invoice.name,
+            "state": invoice.state,
+        }
+
+    @route(
         "/register_payment_invoice/<model('account.move'):invoice>",
         methods=["POST"],
         type="json",
