@@ -1415,7 +1415,7 @@ class MainController(Controller):
             {
                 "move_line_id": line.id,
                 "product_sku": line.product_id.default_code or "",
-                "quantity": line.reserved_uom_qty or line.move_id.product_uom_qty,
+                "quantity": line.move_id.product_uom_qty,
             }
             for line in picking.move_line_ids
         ]
