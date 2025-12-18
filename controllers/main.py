@@ -1354,6 +1354,38 @@ class MainController(Controller):
             "state": purchase_order.state,
         }
 
+    @route(
+        "/cancel_purchase_order/<model('purchase.order'):order>",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def cancel_purchase_order(self, order=False):
+        """Cancels a purchase order.
+
+        This function cancels a purchase order identified by its model instance
+        passed in the URL.
+
+        URL parameter:
+            - order (purchase.order): The purchase order model instance.
+
+        JSON response:
+            - message (str): A confirmation message indicating the action performed.
+            - purchase_order_id (int): The ID of the cancelled purchase order.
+            - state (str): The state of the purchase order.
+
+        Returns:
+            dict: A dictionary with a confirmation message and purchase order details.
+        """
+        order.with_company(order.company_id.id).button_cancel()
+        logger.info("Purchase order with ID %s cancelled", order.id)
+
+        return {
+            "message": f"Purchase order with ID: {order.id} successfully cancelled.",
+            "purchase_order_id": order.id,
+            "state": order.state,
+        }
+
     @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
