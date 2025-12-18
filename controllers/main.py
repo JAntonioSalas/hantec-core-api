@@ -1386,6 +1386,47 @@ class MainController(Controller):
             "state": order.state,
         }
 
+    @route(
+        "/get_reception_lines/<model('stock.picking'):picking",
+        methods=["GET"],
+        type="json",
+        auth="user",
+    )
+    def get_reception_lines(self, picking=False):
+        """Retrieves the move lines for a reception picking.
+
+        Returns the essential data needed to assign lot/serial numbers before validation.
+
+        URL parameter:
+            - picking (stock.picking): The reception picking model instance.
+
+        JSON response:
+            - picking_id (int): The ID of the picking.
+            - picking_name (str): The name of the picking.
+            - move_lines (list of dict): List of move lines with:
+                - move_line_id (int): The ID of the stock.move.line.
+                - product_sku (str): The internal reference of the product.
+                - quantity (float): The demanded quantity.
+
+        Returns:
+            dict: A dictionary with the picking info and move lines.
+        """
+        move_lines_data = [
+            {
+                "move_line_id": line.id,
+                "product_sku": line.product_id.default_code or "",
+                "quantity": line.reserved_uom_qty or line.move_id.product_uom_qty,
+            }
+            for line in picking.move_line_ids
+        ]
+
+        return {
+            "message": f"Reception lines from {picking.id}",
+            "picking_id": picking.id,
+            "picking_name": picking.name,
+            "move_lines": move_lines_data,
+        }
+
     @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
