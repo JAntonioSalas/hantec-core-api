@@ -1387,7 +1387,7 @@ class MainController(Controller):
         }
 
     @route(
-        "/get_reception_lines/<model('stock.picking'):picking",
+        "/get_reception_lines/<model('stock.picking'):picking>",
         methods=["GET"],
         type="json",
         auth="user",
