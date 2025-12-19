@@ -1,4 +1,5 @@
 from odoo.http import request, Controller, route
+from odoo import fields
 import logging
 
 logger = logging.getLogger(__name__)
@@ -578,6 +579,8 @@ class MainController(Controller):
 
         # Post the invoice if requested
         if post_invoice:
+            invoice_date = data.get("invoice_date", fields.Date.context_today(invoice))
+            invoice.with_company(company_id).write({"invoice_date": invoice_date})
             invoice.with_company(company_id).action_post()
 
         return {
