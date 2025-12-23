@@ -1574,25 +1574,40 @@ class MainController(Controller):
                 .browse(move_line_id)
             )
 
-        # Create the lot/serial number
-        lot = (
-            request.env["stock.lot"]
-            .with_company(company_id)
-            .create(
+            # Search for existing lot
+            lot = (
+                request.env["stock.lot"]
+                .with_company(company_id)
+                .search(
+                    [
+                        ("name", "=", lot_name),
+                        ("product_id", "=", move_line.product_id.id),
+                        ("company_id", "=", company_id),
+                    ],
+                    limit=1,
+                )
+            )
+
+            # Create the lot only if it does not exist
+            if not lot:
+                lot = (
+                    request.env["stock.lot"]
+                    .with_company(company_id)
+                    .create(
+                        {
+                            "name": lot_name,
+                            "product_id": move_line.product_id.id,
+                            "company_id": company_id,
+                        }
+                    )
+                )
+
+            move_line.write(
                 {
-                    "name": lot_name,
-                    "product_id": move_line.product_id.id,
-                    "company_id": company_id,
+                    "lot_id": lot.id,
+                    "quantity": move_line.move_id.product_uom_qty,
                 }
             )
-        )
-
-        move_line.write(
-            {
-                "lot_id": lot.id,
-                "quantity": move_line.move_id.product_uom_qty,
-            }
-        )
 
         picking.with_company(company_id).with_context(
             skip_backorder=True
