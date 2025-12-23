@@ -667,6 +667,58 @@ class MainController(Controller):
         return order.get_shipping_info()
 
     @route(
+        "/get_reception_info/<model('purchase.order'):order>",
+        methods=["GET"],
+        type="http",
+        auth="user",
+    )
+    def get_reception_info(self, order=False):
+        """Retrieves reception information for a given purchase order.
+
+        This function gathers reception picking information related to the specified purchase
+        order, including reception IDs, states, and scheduled dates.
+
+        URL parameter:
+            - order (purchase.order): The purchase order model instance.
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - purchase_order_id (int): The ID of the purchase order.
+            - purchase_order_name (str): The name of the purchase order.
+            - receptions (list of dict): A list of dictionaries containing:
+                - reception_id (int): The ID of the reception picking.
+                - reception_name (str): The name of the reception.
+                - state (str): The state of the reception.
+                - scheduled_date (datetime): The scheduled date for the reception.
+                - move_lines_count (int): Number of move lines in the reception.
+
+        Returns:
+            dict: A dictionary with purchase order info and associated receptions.
+        """
+        pickings = order.picking_ids.filtered(
+            lambda p: p.picking_type_code == "incoming"
+        )
+
+        receptions_data = [
+            {
+                "reception_id": picking.id,
+                "reception_name": picking.name,
+                "state": picking.state,
+                "scheduled_date": picking.scheduled_date,
+                "move_lines_count": len(picking.move_ids),
+            }
+            for picking in pickings
+        ]
+
+        results = {
+            "message": f"Found {len(pickings)} receptions for purchase order {order.name}.",
+            "purchase_order_id": order.id,
+            "purchase_order_name": order.name,
+            "receptions": receptions_data,
+        }
+        return request.make_json_response(results)
+
+    @route(
         "/download_invoice/<model('account.move'):invoice>",
         methods=["GET"],
         type="http",
