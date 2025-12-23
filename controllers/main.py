@@ -1580,7 +1580,7 @@ class MainController(Controller):
         )
         return request.make_json_response(result)
 
-    @route("/get_journals", methods=["GET"], type="http", auth="user")
+    @route("/get_journals", methods=["GET"], type="json", auth="user")
     def get_journals(self):
         """Retrieves the list of accounting journals.
 
