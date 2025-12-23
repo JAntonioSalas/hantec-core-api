@@ -1588,8 +1588,15 @@ class MainController(Controller):
                 )
             )
 
-            # Create the lot only if it does not exist
-            if not lot:
+            # If it exists, verify that it belongs to the correct product
+            if lot:
+                if lot.product_id.id != move_line.product_id.id:
+                    return {
+                        "error": f"Serial number {lot_name} is already assigned to product {lot.product_id.display_name}",
+                        "message": f"Cannot assign {lot_name} to {move_line.product_id.display_name}",
+                    }
+            else:
+                # Create the lot only if it does not exist
                 lot = (
                     request.env["stock.lot"]
                     .with_company(company_id)
@@ -1602,13 +1609,7 @@ class MainController(Controller):
                     )
                 )
 
-            move_line.write(
-                {
-                    "lot_id": lot.id,
-                    "quantity": move_line.move_id.product_uom_qty,
-                }
-            )
-
+        # Validate the picking
         picking.with_company(company_id).with_context(
             skip_backorder=True
         ).button_validate()
