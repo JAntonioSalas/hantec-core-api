@@ -1579,3 +1579,44 @@ class MainController(Controller):
             .get_stock_by_location(int(location_id), sku)
         )
         return request.make_json_response(result)
+
+    @route("/get_journals", methods=["GET"], type="http", auth="user")
+    def get_journals(self):
+        """Retrieves the list of accounting journals.
+
+        This function retireves accounting journals from the Odoo database,
+        optionally filtered by type and company.
+
+        JSON request body (optional):
+            - company_id (int, optional): The company ID. Defaults to current company.
+            - journal_type (str, optional): Filter by journal type.
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - journals (list of dict): A list of dictionaries containing journal details:
+                - id (int): The journal ID.
+                - name (str): The journal name.
+                - code (str): The journal code.
+                - type (str): The journal type.
+
+        Returns:
+            dict: A dictionary with a message and the list of journals.
+        """
+        company_id = int(request.params.get("company_id") or request.env.company.id)
+        journal_type = request.params.get("journal_type")
+
+        domain = [("company_id", "=", company_id)]
+
+        if journal_type:
+            domain.append(("type", "=", journal_type))
+
+        journals = (
+            request.env["account.journal"].with_company(company_id).search(domain)
+        )
+
+        journals_data = journals.read(["name", "code", "type"])
+
+        return {
+            "message": f"Found {len(journals)} journals.",
+            "journals": journals_data,
+        }
