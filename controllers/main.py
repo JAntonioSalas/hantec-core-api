@@ -1620,3 +1620,49 @@ class MainController(Controller):
             "message": f"Found {len(journals)} journals.",
             "journals": journals_data,
         }
+
+    @route("/get_picking_types", methods=["GET"], type="json", auth="user")
+    def get_picking_types(self):
+        """Retrieves the list of picking types.
+
+        This function retrieves stock picking types from the Odoo database,
+        optionally filtered by code and warehouse.
+
+        URL parameters (optional):
+            - company_id (int, optional): The company ID. Defaults to current company.
+            - code (str, optional): Filter by picking type code.
+            - warehouse_id (int, optional): Filter by warehouse ID.
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - picking_types (list of dict): A list of dictionaries containing:
+                - id (int): The picking type ID.
+                - name (str): The picking type name.
+                - code (str): The picking type code
+                - warehouse_id (int): The associated warehouse ID.
+                - warehouse_name (str): The warehouse name.
+        """
+        company_id = int(request.params.get("company_id") or request.env.company.id)
+        code = request.params.get("code")
+        warehouse_id = request.params.get("warehouse_id")
+
+        domain = [("company_id", "=", company_id)]
+
+        if code:
+            domain.append(("code", "=", code))
+
+        if warehouse_id:
+            domain.append(("warehouse_id", "=", int(warehouse_id)))
+
+        picking_types = (
+            request.env["stock.picking.type"].with_company(company_id).search(domain)
+        )
+
+        picking_types_data = picking_types.read(
+            ["name", "code", "warehouse_id", "sequence_code"]
+        )
+
+        return {
+            "message": f"Found {len(picking_types)} picking types.",
+            "picking_types": picking_types_data,
+        }
