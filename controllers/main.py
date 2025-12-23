@@ -1580,7 +1580,7 @@ class MainController(Controller):
         )
         return request.make_json_response(result)
 
-    @route("/get_journals", methods=["GET"], type="json", auth="user")
+    @route("/get_journals", methods=["GET"], type="http", auth="user")
     def get_journals(self):
         """Retrieves the list of accounting journals.
 
@@ -1616,12 +1616,14 @@ class MainController(Controller):
 
         journals_data = journals.read(["name", "code", "type"])
 
-        return {
-            "message": f"Found {len(journals)} journals.",
-            "journals": journals_data,
-        }
+        return request.make_json_response(
+            {
+                "message": f"Found {len(journals)} journals.",
+                "journals": journals_data,
+            }
+        )
 
-    @route("/get_picking_types", methods=["GET"], type="json", auth="user")
+    @route("/get_picking_types", methods=["GET"], type="http", auth="user")
     def get_picking_types(self):
         """Retrieves the list of picking types.
 
@@ -1662,7 +1664,9 @@ class MainController(Controller):
             ["name", "code", "warehouse_id", "sequence_code"]
         )
 
-        return {
-            "message": f"Found {len(picking_types)} picking types.",
-            "picking_types": picking_types_data,
-        }
+        return request.make_json_response(
+            {
+                "message": f"Found {len(picking_types)} picking types.",
+                "picking_types": picking_types_data,
+            }
+        )
