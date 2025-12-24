@@ -1609,6 +1609,13 @@ class MainController(Controller):
                     )
                 )
 
+            move_line.write(
+                {
+                    "lot_id": lot.id,
+                    "quantity": move_line.move_id.product_uom_qty,
+                }
+            )
+
         # Validate the picking
         picking.with_company(company_id).with_context(
             skip_backorder=True
