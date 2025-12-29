@@ -1394,6 +1394,7 @@ class MainController(Controller):
                     - product_id (int): The ID of the product.
                     - product_qty (float): The quantity of the product.
                     - price_unit (float, optional): The unit price of the product (default is 0).
+                    - tax_id (int, optional): Tax ID to apply to the product line.
 
             Optional fields:
                 - company_id (int, optional): The company ID. Defaults to the current company.
@@ -1422,6 +1423,7 @@ class MainController(Controller):
                     "product_id": line["product_id"],
                     "product_qty": line["product_qty"],
                     "price_unit": line.get("price_unit", 0),
+                    "taxes_id": [(6, 0, [line.get("tax_id", 2)])],
                 },
             )
             for line in data["product_lines"]
