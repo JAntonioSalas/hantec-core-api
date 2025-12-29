@@ -1653,6 +1653,106 @@ class MainController(Controller):
             "state": picking.state,
         }
 
+    @route(
+        "/return_reception/<model('purchase.order'):order>",
+        methods=["POST"],
+        type="json",
+        auth="user",
+    )
+    def return_reception(self, order=False):
+        """Creates a return for a reception associated with a purchase order.
+
+        This function finds the done reception pickings and creates a return
+        to send products back to the vendor.
+
+        URL parameter:
+            - order (purchase.order): The purchase order model instance.
+
+        JSON request body:
+            - return_lines (list of dict, optional): Specific lines to return:
+                - product_id (int): The product ID.
+                - quantity (float): The quantity to return.
+            - validate_return (bool, optional): If True, validates the return (default False).
+
+        JSON response:
+            - message (str): A message indicating the result.
+            - return_picking_id (int): The ID of the created return picking.
+            - name (str): The name of the return picking.
+
+        Returns:
+            dict: A dictionary with the result.
+        """
+        picking = order.picking_ids.filtered(
+            lambda p: p.state == "done" and p.picking_type_code == "incoming"
+        )
+
+        if not picking:
+            return {"error": "No completed receptions found for this purchase order."}
+
+        picking = picking[:1]
+
+        context = {
+            "active_ids": [picking.id],
+            "active_id": picking.id,
+            "active_model": "stock.picking",
+        }
+
+        ReturnPicking = (
+            request.env["stock.return.picking"]
+            .with_company(order.company_id.id)
+            .with_context(context)
+        )
+        default_vals = ReturnPicking.default_get(ReturnPicking._fields.keys())
+        return_wizard = ReturnPicking.create(default_vals)
+
+        data = request.get_json_data()
+        return_lines = data.get("return_lines")
+
+        if return_lines:
+            requested_products = {
+                int(line["product_id"]): float(line["quantity"])
+                for line in return_lines
+            }
+
+            for line in return_wizard.product_return_moves:
+                prod_id = line.product_id.id
+                if prod_id in requested_products:
+                    line.write({"quantity": requested_products[prod_id]})
+                else:
+                    line.write({"quantity": 0})
+        else:
+            for line in return_wizard.product_return_moves:
+                if line.quantity == 0:
+                    line.write({"quantity": line.move_id.quantity})
+
+        return_action = return_wizard.action_create_returns()
+        return_picking_id = return_action.get("res_id")
+
+        return_picking = (
+            request.env["stock.picking"]
+            .with_company(order.company_id.id)
+            .browse(return_picking_id)
+        )
+
+        validate_return = data.get("validate_return", False)
+
+        if validate_return:
+            for move in return_picking.move_ids:
+                move.quantity = move.product_uom_qty
+            return_picking.button_validate()
+
+            return {
+                "message": f"Return to vendor created and validated with ID: {return_picking.id}.",
+                "return_picking_id": return_picking.id,
+                "name": return_picking.name,
+            }
+
+        return {
+            "message": f"Return to vendor created with ID: {return_picking.id}.",
+            "return_picking_id": return_picking.id,
+            "name": return_picking.name,
+        }
+
     @route("/get_product_stock", methods=["GET"], type="http", auth="user")
     def get_product_stock(self):
         """Retrieves detailed stock information for products by SKU and location.
