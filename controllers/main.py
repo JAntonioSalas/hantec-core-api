@@ -1515,6 +1515,8 @@ class MainController(Controller):
             - picking_name (str): The name of the picking.
             - move_lines (list of dict): List of move lines with:
                 - move_line_id (int): The ID of the stock.move.line.
+                - product_id (int): The ID of the product.
+                - product_name (str): The name of the product.
                 - product_sku (str): The internal reference of the product.
                 - quantity (float): The demanded quantity.
 
@@ -1524,6 +1526,7 @@ class MainController(Controller):
         move_lines_data = [
             {
                 "move_line_id": line.id,
+                "product_id": line.product_id.id,
                 "product_sku": line.product_id.default_code or "",
                 "product_name": line.product_id.name,
                 "quantity": line.move_id.product_uom_qty,
