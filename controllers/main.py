@@ -1574,6 +1574,9 @@ class MainController(Controller):
                 .browse(move_line_id)
             )
 
+            if not move_line.exists():
+                continue
+
             # Search for existing lot
             lot = (
                 request.env["stock.lot"]
@@ -1609,10 +1612,19 @@ class MainController(Controller):
                     )
                 )
 
+            # For lot/serial assignment, set qty_done appropriately
+            if move_line.product_id.tracking == "serial":
+                qty_done = 1.0
+            elif move_line.product_id.tracking == "lot":
+                qty_done = move_line.reserved_uom_qty or move_line.product_uom_qty
+            else:
+                qty_done = move_line.product_uom_qty
+
             move_line.write(
                 {
                     "lot_id": lot.id,
-                    "quantity": move_line.move_id.product_uom_qty,
+                    "lot_name": lot_name,
+                    "qty_done": qty_done,
                 }
             )
 
