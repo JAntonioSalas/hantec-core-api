@@ -1235,50 +1235,59 @@ class MainController(Controller):
         """Updates the 'quant_id' field in a stock move line using the displayed name.
 
         JSON request body:
-            - move_line_id (int): The ID of the stock.move.line record to modify.
-            - quant_name (str): The name of the quant as displayed in the interface (e.g., "Location - Lot").
+            - move_lines_data (list of dict): List of move lines to update, each containing:
+                - move_line_id (int): The ID of the stock.move.line record to modify.
+                - serial_name (str): The lot/serial number.
+                - location_name (str): The complete name of the location.
+            - company_id (int, optional): The company ID. Defaults to current company.
 
         JSON response:
             - message (str): Success or error message.
         """
         data = request.get_json_data()
-        move_line_id = data.get("move_line_id")
-        serial_name = data.get("serial_name")
-        location_name = data.get("location_name")
+        move_lines_data = data.get("move_lines_data", [])
         company_id = data.get("company_id") or request.env.company.id
 
-        move_line = (
-            request.env["stock.move.line"].with_company(company_id).browse(move_line_id)
-        )
+        for line_data in move_lines_data:
+            move_line_id = line_data.get("move_line_id")
+            serial_name = line_data.get("serial_name")
+            location_name = line_data.get("location_name")
 
-        domain = [
-            ("product_id", "=", move_line.product_id.id),
-            ("location_id.usage", "=", "internal"),
-            ("location_id.complete_name", "=", location_name),
-            ("lot_id.name", "=", serial_name),
-        ]
-
-        target_quant = (
-            request.env["stock.quant"].with_company(company_id).search(domain, limit=1)
-        )
-
-        # Update the field 'quant_id' and 'location_id' in the move line
-        if target_quant:
-            move_line.write(
-                {
-                    "quant_id": target_quant.id,
-                    "location_id": target_quant.location_id.id,
-                }
+            move_line = (
+                request.env["stock.move.line"]
+                .with_company(company_id)
+                .browse(move_line_id)
             )
 
-            if move_line.picking_id:
-                move_line.picking_id.write({"location_id": target_quant.location_id.id})
+            domain = [
+                ("product_id", "=", move_line.product_id.id),
+                ("location_id.usage", "=", "internal"),
+                ("location_id.complete_name", "=", location_name),
+                ("lot_id.name", "=", serial_name),
+            ]
 
-            return {
-                "message": f"Product move line {move_line_id} updated to quant {target_quant.id}."
-            }
+            target_quant = (
+                request.env["stock.quant"]
+                .with_company(company_id)
+                .search(domain, limit=1)
+            )
+
+            # Update the field 'quant_id' and 'location_id' in the move line
+            if target_quant:
+                move_line.write(
+                    {
+                        "quant_id": target_quant.id,
+                        "location_id": target_quant.location_id.id,
+                    }
+                )
+
+                if move_line.picking_id:
+                    move_line.picking_id.write(
+                        {"location_id": target_quant.location_id.id}
+                    )
+
         return {
-            "message": f"Not found quant for product move line {move_line_id} with the given details."
+            "message": "Stock move lines updated with the specified quants successfully."
         }
 
     @route(
