@@ -1872,3 +1872,46 @@ class MainController(Controller):
                 "picking_types": picking_types_data,
             }
         )
+
+    @route("/get_taxes", methods=["GET"], type="http", auth="user")
+    def get_taxes(self):
+        """Retrieves the list of available taxes.
+
+        This function retrieves taxes, optionally filtered
+        by type (sale/purchase) and company.
+
+        URL parameters (optional):
+            - company_id (int, optional): The company ID. Defaults to current company.
+            - type_tax_use (str, optional): Filter by tax type ('sale', 'purchase', 'none').
+
+        JSON response:
+            - message (str): A message indicating the action performed.
+            - taxes (list of dict): A list of dictionaries containing:
+                - id (int): The tax ID.
+                - name (str): The tax name.
+                - amount (float): The tax amount/rate.
+                - amount_type (str): The type of amount (percent, fixed, etc.).
+                - type_tax_use (str): Whether it's for sales or purchases.
+                - price_include (bool): Whether the tax is included in the price.
+
+        Returns:
+            dict: A dictionary with a message and the list of taxes.
+        """
+        data = request.params
+        company_id = int(data.get("company_id") or request.env.company.id)
+        type_tax_use = data.get("type_tax_use")
+
+        domain = [("company_id", "=", company_id), ("active", "=", True)]
+
+        if type_tax_use:
+            domain.append(("type_tax_use", "=", type_tax_use))
+
+        taxes = request.env["account.tax"].with_company(company_id).search(domain)
+
+        taxes_data = taxes.read(
+            ["name", "amount", "amount_type", "type_tax_use", "price_include"]
+        )
+
+        return request.make_json_response(
+            {"message": f"Found {len(taxes)} taxes.", "taxes": taxes_data}
+        )
