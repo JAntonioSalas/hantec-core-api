@@ -28,24 +28,22 @@ Changelog
 Version 18.0.0.0.1
 
 - Initial release with the following features:
-- Added `/create_schedule_activity_invoice` endpoint.
-- Added `/get_states` endpoint.
-- Added `/get_inventory_by_sku` endpoint.
-- Added `/get_inventory` endpoint.
-- Added `/send_message_sale_order` endpoint.
-- Added `/create_schedule_activity` endpoint.
-- Added `/confirm_sale_order` endpoint.
-- Added `/send_invoice_by_email/<int:invoice_id>` endpoint.
-- Added `/stamp_invoice/<int:invoice_id>` endpoint.
-- Added `/download_invoice/<int:invoice_id>` endpoint.
+- Added `/create_schedule_activity_invoice/<model("account.move"):invoice>` endpoint.
+- Added `/get_states/<model("res.country"):country>` endpoint.
+- Added `/send_message_sale_order/<model("sale.order"):order>` endpoint.
+- Added `/create_schedule_activity/<model("sale.order"):order>` endpoint.
+- Added `/confirm_sale_order/<model("sale.order"):order>` endpoint.
+- Added `/send_invoice_by_email/<model("account.move"):invoice>` endpoint.
+- Added `/stamp_invoice/<model("account.move"):invoice>` endpoint.
+- Added `/download_invoice/<model("account.move"):invoice>` endpoint.
 - Added `/get_shipping_info/<model("sale.order"):order>` endpoint.
 - Added `/register_payment_invoice/<model("account.move"):invoice>` endpoint.
-- Added `/invoice_sale_order` endpoint.
-- Added `/update_sale_order` endpoint.
+- Added `/invoice_sale_order/<model("sale.order"):order>` endpoint.
+- Added `/update_sale_order/<model("sale.order"):order>` endpoint.
 - Added `/create_sale_order` endpoint.
-- Added `/delivery_address` endpoint.
-- Added `/address_invoice` endpoint.
-- Added `/update_contact` endpoint.
+- Added `/create_delivery_address` endpoint.
+- Added `/create_invoice_address` endpoint.
+- Added `/update_contact/<model("res.partner"):partner>` endpoint.
 - Added `/create_contact` endpoint.
 
 Version 18.0.0.0.2
@@ -53,14 +51,22 @@ Version 18.0.0.0.2
 - Data retrieval on all endpoints was updated to the "get_json_data" method.
 - Invoice creation has been updated to version 18.0 at `invoice_sale_order` endpoint.
 - Added `/create_credit_note/<model("account.move"):invoice>` endpoint.
-- Added `/update_credit_note/<model("account.move"):invoice>` endpoint.
+- Added `/update_credit_note/<model("account.move"):credit_note>` endpoint.
 - Added `/search_contact` endpoint.
-- Added `/create_delivery_address` endpoint.
-- Added `/create_invoice_address` endpoint.
 - Added `/validate_delivery/<model("sale.order"):order>` endpoint.
 - Added `/return_delivery/<model("sale.order"):order>` endpoint.
 - Added `/get_inventory_by_lot` endpoint.
 - Added `/update_move_line_quant_by_name` endpoint.
 - Added `/get_product_id` endpoint.
 - Added `/get_product_stock` endpoint.
-- Added `/get_localities` endpoint.
+- Added `/get_localities/<model("res.country.state"):state>` endpoint.
+- Added `/create_purchase_order` endpoint.
+- Added `/cancel_purchase_order/<model("purchase.order"):order>` endpoint.
+- Added `/invoice_purchase_order/<model("purchase.order"):order>` endpoint.
+- Added `/get_reception_info/<model("purchase.order"):order>` endpoint.
+- Added `/get_reception_lines/<model("stock.picking"):picking>` endpoint.
+- Added `/validate_reception/<model("stock.picking"):picking>` endpoint.
+- Added `/return_reception/<model("purchase.order"):order>` endpoint.
+- Added `/get_journals` endpoint.
+- Added `/get_picking_types` endpoint.
+- Added `/get_taxes` endpoint.
