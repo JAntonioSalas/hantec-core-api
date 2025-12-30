@@ -1,7 +1,7 @@
 {
     "name": "Hantec Core API",
     "summary": "Hantec Core API",
-    "version": "18.0.0.0.2",
+    "version": "18.0.0.0.0",
     "author": "C&O PROJECTS AND SOLUTIONS",
     "license": "OEEL-1",
     "category": "Sales Management",

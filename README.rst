@@ -25,7 +25,7 @@ This module is licensed under the OEEL-1 (Odoo Enterprise Edition License v1.0)
 Changelog
 ---------
 
-Version 18.0.0.0.1
+Version 18.0.0.0.0
 
 - Initial release with the following features:
 - Added `/create_schedule_activity_invoice/<model("account.move"):invoice>` endpoint.
@@ -45,11 +45,6 @@ Version 18.0.0.0.1
 - Added `/create_invoice_address` endpoint.
 - Added `/update_contact/<model("res.partner"):partner>` endpoint.
 - Added `/create_contact` endpoint.
-
-Version 18.0.0.0.2
-
-- Data retrieval on all endpoints was updated to the "get_json_data" method.
-- Invoice creation has been updated to version 18.0 at `invoice_sale_order` endpoint.
 - Added `/create_credit_note/<model("account.move"):invoice>` endpoint.
 - Added `/update_credit_note/<model("account.move"):credit_note>` endpoint.
 - Added `/search_contact` endpoint.
