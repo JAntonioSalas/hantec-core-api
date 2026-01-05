@@ -5,7 +5,12 @@
     "author": "C&O PROJECTS AND SOLUTIONS",
     "license": "OEEL-1",
     "category": "Sales Management",
-    "depends": ["sale_management", "l10n_mx_edi", "l10n_mx_edi_stock"],
+    "depends": [
+        "sale_management",
+        "l10n_mx_edi",
+        "l10n_mx_edi_stock",
+        "l10n_mx_edi_document",
+    ],
     "installable": True,
     "development_status": "Production/Stable",
     "maintainers": ["C&O PROJECTS AND SOLUTIONS"],
