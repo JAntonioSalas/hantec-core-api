@@ -1289,7 +1289,7 @@ class MainController(Controller):
         states = country.state_ids
         states_list = states.read(["name", "code"])
 
-        return request.make_response(
+        return request.make_json_response(
             {
                 "message": f"List states from {country.name}",
                 "states_list": states_list,
@@ -1323,7 +1323,7 @@ class MainController(Controller):
         )
         localities_list = localities.read(["name", "code"])
 
-        return request.make_response(
+        return request.make_json_response(
             {
                 "message": f"List localities from {state.name}",
                 "localities_list": localities_list,
