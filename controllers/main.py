@@ -1267,7 +1267,7 @@ class MainController(Controller):
     @route(
         "/get_states/<model('res.country'):country>",
         methods=["GET"],
-        type="json",
+        type="http",
         auth="user",
     )
     def get_states(self, country):
@@ -1289,15 +1289,17 @@ class MainController(Controller):
         states = country.state_ids
         states_list = states.read(["name", "code"])
 
-        return {
-            "message": f"List states from {country.name}",
-            "states_list": states_list,
-        }
+        return request.make_response(
+            {
+                "message": f"List states from {country.name}",
+                "states_list": states_list,
+            }
+        )
 
     @route(
         "/get_localities/<model('res.country.state'):state>",
         methods=["GET"],
-        type="json",
+        type="http",
         auth="user",
     )
     def get_localities(self, state):
@@ -1321,10 +1323,12 @@ class MainController(Controller):
         )
         localities_list = localities.read(["name", "code"])
 
-        return {
-            "message": f"List localities from {state.name}",
-            "localities_list": localities_list,
-        }
+        return request.make_response(
+            {
+                "message": f"List localities from {state.name}",
+                "localities_list": localities_list,
+            }
+        )
 
     @route("/get_product_id", methods=["POST"], type="json", auth="user")
     def get_product_id(self):
