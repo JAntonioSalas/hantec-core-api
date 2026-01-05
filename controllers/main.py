@@ -4,6 +4,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TAX_ID = 2
+
 
 class MainController(Controller):
     @route("/search_contact", methods=["POST"], type="json", auth="user")
@@ -224,7 +226,7 @@ class MainController(Controller):
                     - product_qty (float): The quantity of the product.
                     - price_unit (float, optional): The unit price of the product (default is 0).
                     - discount (float, optional): The discount on the product (default is 0).
-                    - tax_id (int, optional): The tax ID for the product (default is 2).
+                    - tax_id (int, optional): The tax ID for the product (default is DEFAULT_TAX_ID).
 
             Optional fields:
                 Any additional fields provided in the request will be considered optional
@@ -255,7 +257,7 @@ class MainController(Controller):
                     "product_uom_qty": line["product_qty"],
                     "price_unit": line.get("price_unit", 0),
                     "discount": line.get("discount", 0),
-                    "tax_id": [(6, 0, [line.get("tax_id", 2)])],
+                    "tax_id": [(6, 0, [line.get("tax_id", DEFAULT_TAX_ID)])],
                 },
             )
             for line in sale_order_data["product_lines"]
@@ -1428,7 +1430,7 @@ class MainController(Controller):
                     "product_id": line["product_id"],
                     "product_qty": line["product_qty"],
                     "price_unit": line.get("price_unit", 0),
-                    "taxes_id": [(6, 0, [line.get("tax_id", 2)])],
+                    "taxes_id": [(6, 0, [line.get("tax_id", DEFAULT_TAX_ID)])],
                 },
             )
             for line in data["product_lines"]
