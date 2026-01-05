@@ -611,7 +611,7 @@ class MainController(Controller):
     @route(
         "/get_shipping_info/<model('sale.order'):order>",
         methods=["GET"],
-        type="json",
+        type="http",
         auth="user",
     )
     def get_shipping_info(self, order=False):
@@ -630,7 +630,7 @@ class MainController(Controller):
         Returns:
             dict: A dictionary with a success message and the shipping data.
         """
-        return order.get_shipping_info()
+        return request.make_json_response(order.get_shipping_info())
 
     @route(
         "/get_reception_info/<model('purchase.order'):order>",
@@ -1289,7 +1289,7 @@ class MainController(Controller):
         states = country.state_ids
         states_list = states.read(["name", "code"])
 
-        return request.make_response(
+        return request.make_json_response(
             {
                 "message": f"List states from {country.name}",
                 "states_list": states_list,
@@ -1323,7 +1323,7 @@ class MainController(Controller):
         )
         localities_list = localities.read(["name", "code"])
 
-        return request.make_response(
+        return request.make_json_response(
             {
                 "message": f"List localities from {state.name}",
                 "localities_list": localities_list,
@@ -1479,7 +1479,7 @@ class MainController(Controller):
     @route(
         "/get_reception_lines/<model('stock.picking'):picking>",
         methods=["GET"],
-        type="json",
+        type="http",
         auth="user",
     )
     def get_reception_lines(self, picking=False):
@@ -1514,12 +1514,14 @@ class MainController(Controller):
             for line in picking.move_line_ids
         ]
 
-        return {
-            "message": f"Reception lines from {picking.id}",
-            "picking_id": picking.id,
-            "picking_name": picking.name,
-            "move_lines": move_lines_data,
-        }
+        return request.make_json_response(
+            {
+                "message": f"Reception lines from {picking.id}",
+                "picking_id": picking.id,
+                "picking_name": picking.name,
+                "move_lines": move_lines_data,
+            }
+        )
 
     @route(
         "/validate_reception/<model('stock.picking'):picking>",
