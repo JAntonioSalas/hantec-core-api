@@ -1125,12 +1125,7 @@ class MainController(Controller):
             "message": f"Message successfully posted in sale order with ID: {order.id}."
         }
 
-    @route(
-        "/get_inventory_by_lot",
-        methods=["POST"],
-        type="json",
-        auth="user",
-    )
+    @route("/get_inventory_by_lot", methods=["POST"], type="json", auth="user")
     def get_inventory_by_lot(self):
         """Retrieves inventory details by lot number or serial number.
 
@@ -1165,7 +1160,7 @@ class MainController(Controller):
         product_id = data.get("product_id")
         company_id = data.get("company_id") or request.env.company.id
 
-        # Build domain for search
+        # Build domain for lots search
         domain = []
 
         if serial_name:
@@ -1183,42 +1178,55 @@ class MainController(Controller):
         if product_id:
             domain.append(("product_id", "=", int(product_id)))
 
-        # Search for lots/serial numbers
+        # Search lots and PREFETCH related fields
         lots = request.env["stock.lot"].with_company(company_id).search(domain)
 
+        # Prefetch product data for all lots at once
+        lots.mapped("product_id.name")
+        lots.mapped("product_id.default_code")
+
+        # Build quant domain
+        quant_base_domain = [
+            ("lot_id", "in", lots.ids),  # Single query for all lots
+            ("location_id.usage", "=", "internal"),
+            ("quantity", ">", 0),
+        ]
+
+        if location_id:
+            quant_base_domain.append(("location_id", "=", int(location_id)))
+
+        # Single query for ALL quants at once
+        quants = (
+            request.env["stock.quant"]
+            .with_company(company_id)
+            .search(quant_base_domain)
+        )
+
+        # Prefetch all related fields before loop
+        quants.mapped("lot_id.name")
+        quants.mapped("location_id.complete_name")
+        quants.mapped("location_id.id")
+
+        lots_dict = {lot.id: lot for lot in lots}
+
         inventory_data = []
+        for quant in quants:
+            lot = lots_dict[quant.lot_id.id]
 
-        for lot in lots:
-            # Get quants (stock quantities) for this lot
-            quant_domain = [("lot_id", "=", lot.id)]
-
-            if location_id:
-                quant_domain.append(("location_id", "=", int(location_id)))
-
-            # Only get quants from internal locations with available quantity
-            quant_domain.extend(
-                [("location_id.usage", "=", "internal"), ("quantity", ">", 0)]
+            inventory_data.append(
+                {
+                    "lot_id": lot.id,
+                    "lot_name": lot.name,
+                    "product_id": lot.product_id.id,
+                    "product_name": lot.product_id.name,
+                    "product_sku": lot.product_id.default_code,
+                    "location_id": quant.location_id.id,
+                    "location_name": quant.location_id.complete_name,
+                    "quantity": quant.quantity,
+                    "reserved_quantity": quant.reserved_quantity,
+                    "available_quantity": quant.quantity - quant.reserved_quantity,
+                }
             )
-
-            quants = (
-                request.env["stock.quant"].with_company(company_id).search(quant_domain)
-            )
-
-            for quant in quants:
-                inventory_data.append(
-                    {
-                        "lot_id": lot.id,
-                        "lot_name": lot.name,
-                        "product_id": lot.product_id.id,
-                        "product_name": lot.product_id.name,
-                        "product_sku": lot.product_id.default_code or "",
-                        "location_id": quant.location_id.id,
-                        "location_name": quant.location_id.complete_name,
-                        "quantity": quant.quantity,
-                        "reserved_quantity": quant.reserved_quantity,
-                        "available_quantity": quant.quantity - quant.reserved_quantity,
-                    }
-                )
 
         return {
             "message": f"Found {len(inventory_data)} inventory records for the given lot/serial numbers.",
