@@ -346,9 +346,6 @@ class MainController(Controller):
             lambda p: p.state in ["confirmed", "assigned"]
         )
 
-        if not pickings:
-            return {"message": "No pending deliveries found for this order."}
-
         validated_ids = []
         for picking in pickings:
             # Set quantities done.
@@ -1695,9 +1692,6 @@ class MainController(Controller):
         picking = order.picking_ids.filtered(
             lambda p: p.state == "done" and p.picking_type_code == "incoming"
         )
-
-        if not picking:
-            return {"error": "No completed receptions found for this purchase order."}
 
         picking = picking[:1]
 
