@@ -69,61 +69,28 @@ class MainController(Controller):
             dict: A dictionary with a message and the contact ID.
 
         """
-        env = request.env
         data = request.get_json_data()
-        company_id = data.get("company_id") or env.company.id
+        company_id = data.get("company_id") or request.env.company.id
 
-        partner = env["res.partner"].with_company(company_id)
+        # Delegate logic to the model
+        # Passing company_id in context ensures the model creates/searches in the right company scope
+        partner, is_new = (
+            request.env["res.partner"]
+            .with_company(company_id)
+            .create_or_find_contact(data)
+        )
 
-        existing_contacts = partner.search_contacts_by_params(data)
-
-        if existing_contacts:
-            contact = existing_contacts[-1]
-            logger.info("Contact found with ID %s", contact.id)
-            return {
-                "message": f"Contact found with ID: {contact.id}",
-                "contact_id": contact.id,
-                "is_new": False,
-            }
-
-        store_name = data.get("store_name")
-        if store_name:
-            store_domain = [("name", "=ilike", f"%{store_name}")]
-            parent_contact = partner.search(store_domain, limit=1)
-
-            if parent_contact:
-                return {
-                    "message": f"Store found with ID: {parent_contact.id}.",
-                    "contact_id": parent_contact.id,
-                    "is_new": False,
-                }
-
-            partner_id = data.get("partner_id")
-            if partner_id:
-                data.setdefault("contact_data", {})
-                data["contact_data"].update(
-                    {
-                        "type": "other",
-                        "parent_id": partner_id,
-                    }
-                )
-
-        contact_vals = data.get("contact_data", {})
-
-        for field in ("name", "email", "phone", "mobile"):
-            val = data.get(field)
-            if val:
-                contact_vals.setdefault(field, val)
-
-        contact_vals["company_id"] = company_id
-
-        new_contact = partner.create(contact_vals)
-        logger.info("Contact created with ID %s", new_contact.id)
+        if is_new:
+            logger.info("New contact created via API with ID %s", partner.id)
+            message = f"New contact created with ID {partner.id}"
+        else:
+            logger.info("Existing contact found via API with ID %s", partner.id)
+            message = f"Contact/Store found with ID: {partner.id}"
 
         return {
-            "message": f"New contact created with ID {new_contact.id}",
-            "contact_id": new_contact.id,
-            "is_new": True,
+            "message": message,
+            "contact_id": partner.id,
+            "is_new": is_new,
         }
 
     @route(
