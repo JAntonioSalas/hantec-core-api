@@ -1,5 +1,6 @@
 from odoo.http import request, Controller, route
 from odoo import fields
+from odoo.exceptions import ValidationError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1589,10 +1590,10 @@ class MainController(Controller):
             # If it exists, verify that it belongs to the correct product
             if lot:
                 if lot.product_id.id != move_line.product_id.id:
-                    return {
-                        "error": f"Serial number {lot_name} is already assigned to product {lot.product_id.display_name}",
-                        "message": f"Cannot assign {lot_name} to {move_line.product_id.display_name}",
-                    }
+                    raise ValidationError(
+                        f"Serial number {lot_name} is already assigned to product {lot.product_id.display_name}."
+                        f"Cannot assign {lot_name} to {move_line.product_id.display_name}."
+                    )
             else:
                 # Create the lot only if it does not exist
                 lot = (
