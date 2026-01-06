@@ -60,8 +60,12 @@ class ResPartner(models.Model):
         Returns:
             tuple: (res.partner record, bool is_new)
         """
+        company_id = data.get("company_id") or self.env.company.id
+
+        self_with_company = self.with_company(company_id)
+
         # Search existing contact using strict or loose params
-        existing_contacts = self.search_contacts_by_params(data)
+        existing_contacts = self_with_company.search_contacts_by_params(data)
         if existing_contacts:
             # Return the last found (as per original controller logic) and False for is_new
             return existing_contacts[-1], False
@@ -70,7 +74,7 @@ class ResPartner(models.Model):
         store_name = data.get("store_name")
         if store_name:
             store_domain = [("name", "=ilike", f"%{store_name}")]
-            parent_contact = self.search(store_domain, limit=1)
+            parent_contact = self_with_company.search(store_domain, limit=1)
 
             if parent_contact:
                 return parent_contact, False
@@ -95,10 +99,8 @@ class ResPartner(models.Model):
             if val:
                 contact_vals.setdefault(field, val)
 
-        # Ensure company_id is set explicitly for creation from context
-        if self.env.context.get("allowed_company_ids"):
-            contact_vals["company_id"] = self.env.context["allowed_company_ids"][0]
+        contact_vals["company_id"] = company_id
 
         # Create new contact
-        new_contact = self.create(contact_vals)
+        new_contact = self_with_company.create(contact_vals)
         return new_contact, True
