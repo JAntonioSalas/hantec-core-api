@@ -108,6 +108,7 @@ class MainController(Controller):
 
         JSON request body:
             - partner_id (int): The ID of the contact to be updated.
+            - company_id (int, optional): The ID of the company for scoping the update.
             - update_vals (dict): A dictionary containing the values to be updated.
 
         JSON response:
@@ -117,8 +118,12 @@ class MainController(Controller):
             dict: A dictionary with a success message.
 
         """
-        update_vals = request.get_json_data().get("update_vals")  # Values to update
-        partner.write(update_vals)  # Update the contact with the new values
+        data = request.get_json_data()
+        company_id = data.get("company_id") or request.env.company.id
+        update_vals = data.get("update_vals")  # Values to update
+        partner.with_company(company_id).write(
+            update_vals
+        )  # Update the contact with the new values
         logger.debug("Contact updated with ID %s", partner.id)
 
         return {"message": f"Contact with ID: {partner.id} successfully updated."}
