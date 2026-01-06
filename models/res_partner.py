@@ -90,7 +90,6 @@ class ResPartner(models.Model):
                     }
                 )
 
-        # Prepare creation values
         contact_vals = data.get("contact_data", {})
 
         # Extract allowed fields from root to contact_vals if not present

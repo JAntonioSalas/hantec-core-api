@@ -73,8 +73,7 @@ class MainController(Controller):
         data = request.get_json_data()
         company_id = data.get("company_id") or request.env.company.id
 
-        # Delegate logic to the model
-        # Passing company_id in context ensures the model creates/searches in the right company scope
+        # Create contact
         partner, is_new = (
             request.env["res.partner"]
             .with_company(company_id)
@@ -120,7 +119,7 @@ class MainController(Controller):
         """
         data = request.get_json_data()
         company_id = data.get("company_id") or request.env.company.id
-        update_vals = data.get("update_vals")  # Values to update
+        update_vals = data.get("update_vals")
         partner.with_company(company_id).write(
             update_vals
         )  # Update the contact with the new values
@@ -393,7 +392,7 @@ class MainController(Controller):
 
         # Handle partial returns
         if return_lines:
-            # Create a map for easy lookup: {product_id: quantity_to_return}
+            # Create a map for easy lookup
             requested_products = {
                 int(line["product_id"]): float(line["quantity"])
                 for line in return_lines
