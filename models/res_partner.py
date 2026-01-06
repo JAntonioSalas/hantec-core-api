@@ -75,7 +75,7 @@ class ResPartner(models.Model):
             if parent_contact:
                 return parent_contact, False
 
-            # If store provided but not found, check if we need to link to a parent
+            # If store provided but not found
             partner_id = data.get("partner_id")
             if partner_id:
                 data.setdefault("contact_data", {})
