@@ -775,7 +775,6 @@ class MainController(Controller):
         send_email = request.get_json_data().get("send_email", False)
 
         # We use the account.move.send.wizard to process EDI documents (stamping)
-        # We simulate the wizard action to trigger the CFDI generation
         send_wizard = (
             request.env["account.move.send.wizard"]
             .with_company(invoice.company_id.id)
